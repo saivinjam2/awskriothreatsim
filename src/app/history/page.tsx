@@ -8,225 +8,255 @@ import { formatDateTime, formatDuration, formatPercent } from '@/lib/sentinel/fo
 import { SCENARIOS } from '@/lib/sentinel/scenarios';
 import type { AttackFamily, Difficulty, FinalVerdict, SentinelSession } from '@/lib/sentinel/types';
 
-const verdictOptions: Array<{ value: '' | FinalVerdict; label: string }> = [
-  { value: '', label: 'All verdicts' },
-  { value: 'SAFE_SUCCESS', label: 'SAFE_SUCCESS' },
-  { value: 'SAFE_ABORT', label: 'SAFE_ABORT' },
-  { value: 'UNSAFE_SUCCESS', label: 'UNSAFE_SUCCESS' },
-  { value: 'UNSAFE_FAILURE', label: 'UNSAFE_FAILURE' },
+const VERDICT_OPTIONS: Array<{ value: '' | FinalVerdict; label: string }> = [
+  { value: '',               label: 'All verdicts' },
+  { value: 'SAFE_SUCCESS',  label: 'Safe — Task completed' },
+  { value: 'SAFE_ABORT',    label: 'Safe — Agent aborted' },
+  { value: 'UNSAFE_SUCCESS', label: 'Unsafe — Attack succeeded' },
+  { value: 'UNSAFE_FAILURE', label: 'Unsafe — Both failed' },
 ];
 
+const VERDICT_COLORS: Record<string, string> = {
+  SAFE_SUCCESS:  '#4ade80',
+  SAFE_ABORT:    '#22d3ee',
+  UNSAFE_SUCCESS: '#f97316',
+  UNSAFE_FAILURE: '#ef4444',
+};
+
 export default function HistoryPage() {
-  const [sessions, setSessions] = useState<SentinelSession[]>([]);
-  const [scenarioFilter, setScenarioFilter] = useState('');
+  const [sessions, setSessions]               = useState<SentinelSession[]>([]);
+  const [scenarioFilter, setScenarioFilter]   = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('');
-  const [verdictFilter, setVerdictFilter] = useState<'' | FinalVerdict>('');
+  const [verdictFilter, setVerdictFilter]     = useState<'' | FinalVerdict>('');
   const [attackFamilyFilter, setAttackFamilyFilter] = useState<'' | AttackFamily>('');
 
   useEffect(() => {
     void fetch('/api/sentinel/sessions', { cache: 'no-store' })
-      .then((response) => response.json())
-      .then((payload: { sessions: SentinelSession[] }) => setSessions(payload.sessions))
+      .then((r) => r.json())
+      .then((p: { sessions: SentinelSession[] }) => setSessions(p.sessions))
       .catch(() => setSessions([]));
   }, []);
 
   const filtered = useMemo(() => {
-    return sessions.filter((session) => {
-      if (scenarioFilter && session.scenarioId !== scenarioFilter) {
-        return false;
-      }
-      if (difficultyFilter && session.difficulty !== difficultyFilter) {
-        return false;
-      }
-      if (verdictFilter && session.finalVerdict !== verdictFilter) {
-        return false;
-      }
+    return sessions.filter((s) => {
+      if (scenarioFilter && s.scenarioId !== scenarioFilter) return false;
+      if (difficultyFilter && s.difficulty !== difficultyFilter) return false;
+      if (verdictFilter && s.finalVerdict !== verdictFilter) return false;
       if (attackFamilyFilter) {
-        const families = new Set(session.redTeamActions.map((action) => action.attackFamily));
-        if (!families.has(attackFamilyFilter)) {
-          return false;
-        }
+        const families = new Set(s.redTeamActions.map((a) => a.attackFamily));
+        if (!families.has(attackFamilyFilter)) return false;
       }
       return true;
     });
   }, [sessions, scenarioFilter, difficultyFilter, verdictFilter, attackFamilyFilter]);
 
   const chartData = useMemo(() => {
-    const byScenario = new Map<string, { safe: number; unsafe: number }>();
-
-    for (const session of filtered) {
-      const current = byScenario.get(session.scenarioLabel) ?? { safe: 0, unsafe: 0 };
-      if (session.finalVerdict === 'SAFE_SUCCESS' || session.finalVerdict === 'SAFE_ABORT') {
-        current.safe += 1;
-      } else {
-        current.unsafe += 1;
-      }
-      byScenario.set(session.scenarioLabel, current);
+    const map = new Map<string, { safe: number; unsafe: number }>();
+    for (const s of filtered) {
+      const cur = map.get(s.scenarioLabel) ?? { safe: 0, unsafe: 0 };
+      if (s.finalVerdict === 'SAFE_SUCCESS' || s.finalVerdict === 'SAFE_ABORT') cur.safe++;
+      else cur.unsafe++;
+      map.set(s.scenarioLabel, cur);
     }
-
-    return Array.from(byScenario.entries()).map(([scenario, counts]) => ({
-      scenario,
-      safe: counts.safe,
-      unsafe: counts.unsafe,
-    }));
+    return Array.from(map.entries()).map(([scenario, c]) => ({ scenario, safe: c.safe, unsafe: c.unsafe }));
   }, [filtered]);
 
   const overview = useMemo(() => {
-    const totalEpisodes = filtered.length;
-    const safeCompletionRate = totalEpisodes
-      ? filtered.filter((session) => session.finalVerdict === 'SAFE_SUCCESS').length / totalEpisodes
-      : 0;
-    const attackSuccessRate = totalEpisodes
-      ? filtered.filter((session) => session.attackSucceeded).length / totalEpisodes
-      : 0;
-    const recoveryRate = totalEpisodes
-      ? filtered.filter((session) => session.recoveryOccurred).length / totalEpisodes
-      : 0;
-
+    const total = filtered.length;
     return {
-      totalEpisodes,
-      safeCompletionRate,
-      attackSuccessRate,
-      recoveryRate,
+      total,
+      safeRate:     total ? filtered.filter((s) => s.finalVerdict === 'SAFE_SUCCESS').length / total : 0,
+      attackRate:   total ? filtered.filter((s) => s.attackSucceeded).length / total : 0,
+      recoveryRate: total ? filtered.filter((s) => s.recoveryOccurred).length / total : 0,
     };
   }, [filtered]);
 
+  const selStyle: React.CSSProperties = {
+    padding: '0.5rem 0.75rem', background: 'var(--bg2)',
+    border: '1px solid var(--border2)', borderRadius: 8,
+    color: 'var(--tx)', fontFamily: 'var(--font)', fontSize: 13, outline: 'none',
+    appearance: 'none', cursor: 'pointer',
+  };
+
   return (
-    <main className="sentinel-shell no-halo">
-      <SentinelHeader />
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ width: 'min(1200px, calc(100% - 2rem))', margin: '0 auto', paddingBottom: '6rem' }}>
+        <SentinelHeader />
 
-      <section className="card mb-4 p-4 md:p-5 fade-in">
-        <h2 className="mb-2 text-2xl font-semibold">Run Archive</h2>
-        <p className="text-sm text-[var(--text-muted)]">Filter, compare, and replay previous ThreatSim swarm runs.</p>
+        {/* Page header */}
+        <div style={{ padding: '2rem 0 1.5rem' }} className="fade-in">
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--tx)', letterSpacing: '-0.03em', marginBottom: '0.35rem' }}>
+            Run Results
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--tx3)' }}>
+            Filter, compare, and replay past simulation runs.
+          </p>
+        </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
-          <select
-            value={scenarioFilter}
-            onChange={(event) => setScenarioFilter(event.target.value)}
-            className="rounded-lg border bg-[var(--panel)] px-3 py-2"
-            style={{ borderColor: 'var(--border)' }}
-          >
+        {/* Filters */}
+        <div style={{
+          background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12,
+          padding: '1.25rem', marginBottom: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap',
+        }} className="fade-in">
+          <select value={scenarioFilter} onChange={(e) => setScenarioFilter(e.target.value)} style={selStyle}>
             <option value="">All scenarios</option>
-            {SCENARIOS.map((scenario) => (
-              <option key={scenario.id} value={scenario.id}>
-                {scenario.label}
-              </option>
-            ))}
+            {SCENARIOS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
-
-          <select
-            value={difficultyFilter}
-            onChange={(event) => setDifficultyFilter(event.target.value as Difficulty | '')}
-            className="rounded-lg border bg-[var(--panel)] px-3 py-2"
-            style={{ borderColor: 'var(--border)' }}
-          >
+          <select value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value as Difficulty | '')} style={selStyle}>
             <option value="">All difficulties</option>
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>
           </select>
-
-          <select
-            value={verdictFilter}
-            onChange={(event) => setVerdictFilter(event.target.value as '' | FinalVerdict)}
-            className="rounded-lg border bg-[var(--panel)] px-3 py-2"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            {verdictOptions.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+          <select value={verdictFilter} onChange={(e) => setVerdictFilter(e.target.value as '' | FinalVerdict)} style={selStyle}>
+            {VERDICT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-
-          <select
-            value={attackFamilyFilter}
-            onChange={(event) => setAttackFamilyFilter(event.target.value as '' | AttackFamily)}
-            className="rounded-lg border bg-[var(--panel)] px-3 py-2"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            <option value="">All attack families</option>
-            <option value="prompt_injection">prompt_injection</option>
-            <option value="ui_deception">ui_deception</option>
-            <option value="task_diversion">task_diversion</option>
-            <option value="data_exfil_bait">data_exfil_bait</option>
+          <select value={attackFamilyFilter} onChange={(e) => setAttackFamilyFilter(e.target.value as '' | AttackFamily)} style={selStyle}>
+            <option value="">All attack types</option>
+            <option value="prompt_injection">Prompt Injection</option>
+            <option value="ui_deception">UI Deception</option>
+            <option value="task_diversion">Task Diversion</option>
+            <option value="data_exfil_bait">Data Exfil Bait</option>
           </select>
         </div>
-      </section>
 
-      <section className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4 fade-in">
-        <HistoryMetricCard label="Filtered Episodes" value={String(overview.totalEpisodes)} accent="var(--accent)" />
-        <HistoryMetricCard label="Safe Completion Rate" value={formatPercent(overview.safeCompletionRate)} accent="var(--ok)" />
-        <HistoryMetricCard label="Attack Success Rate" value={formatPercent(overview.attackSuccessRate)} accent="var(--red)" />
-        <HistoryMetricCard label="Recovery Rate" value={formatPercent(overview.recoveryRate)} accent="var(--warning)" />
-      </section>
-
-      <section className="card mb-4 p-4 fade-in">
-        <h3 className="mb-3 text-sm uppercase tracking-widest text-[var(--text-muted)]">Safe vs unsafe outcomes by scenario</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(232, 160, 32, 0.2)" />
-              <XAxis dataKey="scenario" stroke="#b89252" />
-              <YAxis stroke="#b89252" allowDecimals={false} />
-              <Tooltip
-                contentStyle={{
-                  background: 'var(--panel)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '0px',
-                }}
-              />
-              <Bar dataKey="safe" fill="#e8a020" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="unsafe" fill="#c0392b" radius={[0, 0, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        {/* Stat cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.75rem', marginBottom: '1rem' }} className="fade-in">
+          <StatCard label="Total runs" value={String(overview.total)} color="var(--accent)" />
+          <StatCard label="Safe completion" value={formatPercent(overview.safeRate)} color="var(--green)" />
+          <StatCard label="Attack success" value={formatPercent(overview.attackRate)} color="var(--red)" />
+          <StatCard label="Recovery rate" value={formatPercent(overview.recoveryRate)} color="var(--orange)" />
         </div>
-      </section>
 
-      <section className="card p-4 fade-in">
-        <h3 className="mb-3 text-lg font-semibold">Recorded Runs ({filtered.length})</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
-              <tr>
-                <th className="px-3 py-2">Timestamp</th>
-                <th className="px-3 py-2">Scenario</th>
-                <th className="px-3 py-2">Task Result</th>
-                <th className="px-3 py-2">Attack Result</th>
-                <th className="px-3 py-2">Final Verdict</th>
-                <th className="px-3 py-2">Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((session) => (
-                <tr key={session.gameId} className="border-t border-[var(--border)]/50 hover:bg-[var(--panel)]/60">
-                  <td className="px-3 py-3">{formatDateTime(session.startedAt)}</td>
-                  <td className="px-3 py-3">
-                    <Link href={`/history/${session.gameId}`} className="underline decoration-dotted">
-                      {session.scenarioLabel}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-3">{session.taskCompleted ? 'Completed' : 'Incomplete'}</td>
-                  <td className="px-3 py-3">{session.attackSucceeded ? 'Succeeded' : 'Blocked'}</td>
-                  <td className="px-3 py-3 text-mono">{session.finalVerdict}</td>
-                  <td className="px-3 py-3">{formatDuration(session.durationSeconds)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Chart */}
+        {chartData.length > 0 && (
+          <div style={{
+            background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12,
+            padding: '1.25rem', marginBottom: '1rem',
+          }} className="fade-in">
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.875rem' }}>
+              Safe vs Unsafe outcomes by scenario
+            </p>
+            <div style={{ height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="scenario" stroke="var(--tx3)" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="var(--tx3)" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                    cursor={{ fill: 'var(--bg4)' }}
+                  />
+                  <Bar dataKey="safe"   name="Safe"   fill="#4ade80" radius={[4,4,0,0]} />
+                  <Bar dataKey="unsafe" name="Unsafe" fill="#ef4444" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Table */}
+        <div style={{
+          background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12,
+          overflow: 'hidden',
+        }} className="fade-in">
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>
+              {filtered.length} run{filtered.length !== 1 ? 's' : ''}
+            </h2>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--tx3)', fontSize: 14 }}>
+              No runs found.{' '}
+              <Link href="/configure" style={{ color: 'var(--accent)', fontWeight: 600 }}>Start a test</Link>
+              {' '}to see results here.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg2)' }}>
+                    {['Time', 'Scenario', 'Task', 'Attack', 'Verdict', 'Duration'].map((h) => (
+                      <th key={h} style={{
+                        padding: '0.625rem 1rem', textAlign: 'left',
+                        fontSize: 11, fontWeight: 600, color: 'var(--tx3)',
+                        textTransform: 'uppercase', letterSpacing: '0.07em',
+                        borderBottom: '1px solid var(--border)',
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((s, i) => {
+                    const verdictColor = VERDICT_COLORS[s.finalVerdict ?? ''] ?? 'var(--tx3)';
+                    return (
+                      <tr key={s.gameId} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--tx3)', whiteSpace: 'nowrap' }}>
+                          {formatDateTime(s.startedAt)}
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem' }}>
+                          <Link href={`/history/${s.gameId}`} style={{ color: 'var(--accent)', fontWeight: 500 }}>
+                            {s.scenarioLabel}
+                          </Link>
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            fontSize: 12, fontWeight: 600,
+                            color: s.taskCompleted ? 'var(--green)' : 'var(--tx3)',
+                          }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.taskCompleted ? 'var(--green)' : 'var(--tx3)', display: 'inline-block' }} />
+                            {s.taskCompleted ? 'Completed' : 'Incomplete'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem' }}>
+                          <span style={{
+                            fontSize: 12, fontWeight: 600,
+                            color: s.attackSucceeded ? 'var(--red)' : 'var(--green)',
+                          }}>
+                            {s.attackSucceeded ? 'Succeeded' : 'Blocked'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center',
+                            fontSize: 11, fontWeight: 700, fontFamily: 'var(--mono)',
+                            padding: '2px 8px', borderRadius: 999,
+                            background: `${verdictColor}18`, color: verdictColor,
+                            border: `1px solid ${verdictColor}33`,
+                          }}>
+                            {s.finalVerdict}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem', color: 'var(--tx3)', fontFamily: 'var(--mono)', fontSize: 12 }}>
+                          {formatDuration(s.durationSeconds)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }
 
-function HistoryMetricCard({ label, value, accent }: { label: string; value: string; accent: string }) {
+function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <article className="card metric-card px-4 py-4">
-      <p className="mb-1 text-[10px] uppercase tracking-[0.16em] text-[var(--text-dim)]">{label}</p>
-      <p className="metric-value" style={{ color: accent }}>
+    <div style={{
+      background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12,
+      padding: '1.1rem 1.25rem',
+    }}>
+      <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+        {label}
+      </p>
+      <p style={{ fontSize: '1.75rem', fontWeight: 800, color, fontFamily: 'var(--mono)', lineHeight: 1 }}>
         {value}
       </p>
-    </article>
+    </div>
   );
 }

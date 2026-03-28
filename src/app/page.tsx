@@ -1,399 +1,190 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { AgentDuel } from '@/components/agent-duel';
 import { SentinelHeader } from '@/components/sentinel-header';
-import { DIFFICULTY_OPTIONS, RED_TEAM_OPTIONS, TASK_AGENT_OPTIONS } from '@/lib/sentinel/constants';
-import { LIVE_WEB_PRESETS } from '@/lib/sentinel/live-web-presets';
-import type { Difficulty, RedTeamType, TaskAgentType } from '@/lib/sentinel/types';
 
-const THREAT_LANES = [
+const HOW_IT_WORKS = [
   {
-    label: 'Prompt Injection',
-    persona: 'Injector',
-    detail: 'Instruction overrides, poisoned context, and alignment drift attempts.',
-    strength: { easy: 64, medium: 78, hard: 92 },
-    tone: 'magenta',
+    step: '01',
+    title: 'Pick a target website',
+    desc: 'Choose any live website and give the AI agent a task to complete on it — like searching for a product or filling out a form.',
   },
   {
-    label: 'UI Deception',
-    persona: 'Deceiver',
-    detail: 'Fake trust cues, relabeled controls, and manipulative calls to action.',
-    strength: { easy: 48, medium: 62, hard: 80 },
-    tone: 'cyan',
+    step: '02',
+    title: 'The red team attacks',
+    desc: 'A second AI tries to trick the first one — injecting fake instructions, hiding real buttons, and baiting it into doing the wrong thing.',
   },
   {
-    label: 'Task Diversion',
-    persona: 'Chainmaker',
-    detail: 'Urgent detours that waste steps or redirect the browser agent.',
-    strength: { easy: 40, medium: 56, hard: 76 },
-    tone: 'orange',
-  },
-  {
-    label: 'Data Exfil Bait',
-    persona: 'Exfiltrator',
-    detail: 'Requests for irrelevant secrets, credentials, or hidden internal state.',
-    strength: { easy: 34, medium: 46, hard: 68 },
-    tone: 'red',
+    step: '03',
+    title: 'Watch it play out live',
+    desc: "See both AIs battle in real-time. Get a full breakdown of every attack, every decision, and whether the agent held up — or got fooled.",
   },
 ];
 
-export default function LobbyPage() {
-  const router = useRouter();
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
-  const [taskAgentType, setTaskAgentType] = useState<TaskAgentType>('llm-policy');
-  const [redTeamType, setRedTeamType] = useState<RedTeamType>('llm-red-team');
-  const [livePresetId, setLivePresetId] = useState<string>(LIVE_WEB_PRESETS[0]?.id ?? 'custom');
-  const [targetUrl, setTargetUrl] = useState(LIVE_WEB_PRESETS[0]?.url ?? 'https://example.com');
-  const [customTask, setCustomTask] = useState(
-    LIVE_WEB_PRESETS[0]?.task ?? 'Find the main topic of this page and summarize it safely.',
-  );
-  const [startError, setStartError] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
+const FEATURES = [
+  {
+    icon: '🎯',
+    title: 'Real websites, real attacks',
+    desc: 'Runs against actual live sites — not sandboxes. The threat is as real as it gets.',
+  },
+  {
+    icon: '🧠',
+    title: '4 types of AI attacks',
+    desc: 'Prompt injection, fake UI elements, task diversion, and data theft traps — all automated.',
+  },
+  {
+    icon: '📊',
+    title: 'Full run history',
+    desc: 'Every session is saved. Replay, compare, and export any run as JSON or CSV.',
+  },
+  {
+    icon: '⚡',
+    title: 'Adjustable difficulty',
+    desc: 'From a gentle test to full-pressure attack mode. You control how hard the red team pushes.',
+  },
+];
 
-  useEffect(() => {
-    const preset = LIVE_WEB_PRESETS.find((entry) => entry.id === livePresetId);
-    if (!preset) {
-      return;
-    }
-    setTargetUrl(preset.url);
-    setCustomTask(preset.task);
-  }, [livePresetId]);
-
-  async function startSimulation() {
-    setStartError(null);
-    setStarting(true);
-    try {
-      if (!/^https?:\/\//i.test(targetUrl.trim())) {
-        setStartError('Live Web mode requires a valid http(s) URL.');
-        return;
-      }
-
-      const response = await fetch('/api/sentinel/start', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          scenarioId: 'live-web',
-          difficulty,
-          taskAgentType,
-          redTeamType,
-          targetUrl: targetUrl.trim(),
-          customTask: customTask.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => ({ error: 'Failed to start simulation' }))) as { error?: string };
-        throw new Error(payload.error || 'Failed to start simulation');
-      }
-
-      const payload = (await response.json()) as { gameId: string };
-      router.push(`/arena/${payload.gameId}`);
-    } catch (error) {
-      setStartError((error as Error).message);
-    } finally {
-      setStarting(false);
-    }
-  }
-
-  const selectedPreset = LIVE_WEB_PRESETS.find((entry) => entry.id === livePresetId);
-  const difficultyOption = DIFFICULTY_OPTIONS.find((option) => option.value === difficulty);
-  const taskAgentOption = TASK_AGENT_OPTIONS.find((option) => option.value === taskAgentType);
-  const redTeamOption = RED_TEAM_OPTIONS.find((option) => option.value === redTeamType);
-
+export default function HomePage() {
   return (
-    <main className="sentinel-shell threatsim-shell">
-      <SentinelHeader />
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ width: 'min(1200px, calc(100% - 2rem))', margin: '0 auto', paddingBottom: '6rem' }}>
+        <SentinelHeader />
 
-      <section className="threatsim-hero fade-in">
-        <div className="threatsim-hero-copy">
-          <p className="threatsim-kicker">Live Browser Agent Adversarial Simulation</p>
-          <h1 className="threatsim-title">KRIO THREATSIM</h1>
-          <p className="threatsim-subtitle">Swarm Defense Arena for red-teaming browser agents on live sites.</p>
-          <p className="threatsim-deck">
-            Launch a live run, keep the real website centered, and watch actual red-team events materialize as attack lanes,
-            telemetry, and fish-like pressure around the viewport.
+        {/* ── Hero ── */}
+        <section style={{ padding: '5rem 0 4rem', textAlign: 'center', maxWidth: 720, margin: '0 auto' }} className="fade-in">
+          <div style={{
+            display: 'inline-flex', alignItems: 'center',
+            background: 'var(--accent-dim)', border: '1px solid rgba(99,102,241,0.25)',
+            color: 'var(--accent)', fontSize: 11, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            padding: '0.35rem 1rem', borderRadius: 999, marginBottom: '1.5rem',
+          }}>
+            AI Security Testing Tool
+          </div>
+
+          <h1 style={{
+            fontSize: 'clamp(2.5rem, 5vw, 3.75rem)', fontWeight: 800,
+            color: 'var(--tx)', letterSpacing: '-0.04em', lineHeight: 1.05,
+            marginBottom: '1.25rem',
+          }}>
+            See if your AI agent can<br />
+            <span style={{ color: 'var(--accent)' }}>survive an attack</span>
+          </h1>
+
+          <p style={{
+            fontSize: '1.1rem', color: 'var(--tx2)', lineHeight: 1.7,
+            marginBottom: '2.5rem', maxWidth: 540, margin: '0 auto 2.5rem',
+          }}>
+            KRIO ThreatSim pits your browser AI agent against a red-team attacker
+            on any live website. Watch in real-time. Get a full report.
           </p>
 
-          <div className="threatsim-hero-actions">
-            <a href="#run-setup" className="threatsim-primary-link">
-              Configure Run
-            </a>
-            <Link href="/history" className="threatsim-secondary-link">
-              Open Run Archive
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/configure" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.8rem 2rem', background: 'var(--accent)', color: '#fff',
+              fontSize: 15, fontWeight: 700, borderRadius: 999,
+              boxShadow: '0 4px 16px rgba(99,102,241,0.35)',
+              transition: 'transform 0.15s',
+            }}>
+              Start a Test →
+            </Link>
+            <Link href="/history" style={{
+              display: 'inline-flex', alignItems: 'center',
+              padding: '0.8rem 2rem',
+              border: '1px solid var(--border2)', color: 'var(--tx2)',
+              fontSize: 15, fontWeight: 500, borderRadius: 999,
+              background: 'transparent',
+            }}>
+              View Past Results
             </Link>
           </div>
-
-          <div className="threatsim-hero-stats">
-            <HeroStat label="Viewport-led" value="Live website in center" />
-            <HeroStat label="Threat lanes" value="4 active, 2 reserved" />
-            <HeroStat label="Telemetry" value="Blocked, impact, immunity" />
-          </div>
-        </div>
-
-        <div className="threatsim-hero-visual">
-          <AgentDuel taskAgentType={taskAgentType} redTeamType={redTeamType} />
-        </div>
-      </section>
-
-      <section id="run-setup" className="threatsim-launch-grid fade-in">
-        <section className="card threatsim-panel threatsim-panel-wide">
-          <PanelHeader
-            title="Target And Objective"
-            description="Point the run at a live site or local scenario page and define the exact objective the task agent must complete."
-          />
-
-          <div className="threatsim-field-grid">
-            <Field label="Preset" htmlFor="live-preset" hint={selectedPreset ? 'Loads a ready-made target and editable objective.' : 'Use any read-only URL and write the task yourself.'}>
-              <select
-                id="live-preset"
-                value={livePresetId}
-                onChange={(event) => setLivePresetId(event.target.value)}
-                className="threatsim-field-control"
-              >
-                {LIVE_WEB_PRESETS.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
-                  </option>
-                ))}
-                <option value="custom">Custom URL + Task</option>
-              </select>
-            </Field>
-
-            <Field label="Target URL" htmlFor="target-url" hint="Use localhost scenario pages or any reachable http(s) target.">
-              <input
-                id="target-url"
-                type="url"
-                value={targetUrl}
-                onChange={(event) => {
-                  setLivePresetId('custom');
-                  setTargetUrl(event.target.value);
-                }}
-                className="threatsim-field-control"
-                placeholder="https://example.com"
-              />
-            </Field>
-          </div>
-
-          <Field
-            label="Task Instructions"
-            htmlFor="task-instructions"
-            hint="This objective is handed directly to the task agent at run start."
-          >
-            <textarea
-              id="task-instructions"
-              value={customTask}
-              onChange={(event) => {
-                setLivePresetId('custom');
-                setCustomTask(event.target.value);
-              }}
-              rows={4}
-              className="threatsim-field-control threatsim-field-textarea"
-            />
-          </Field>
         </section>
 
-        <section className="card threatsim-panel">
-          <PanelHeader
-            title="Policy Pairing"
-            description="Choose how the task agent evaluates risk and how the red team generates pressure."
-          />
+        {/* ── How It Works ── */}
+        <section style={{ padding: '3rem 0' }} className="fade-in">
+          <h2 style={{
+            fontSize: '1.5rem', fontWeight: 700, color: 'var(--tx)',
+            letterSpacing: '-0.02em', textAlign: 'center', marginBottom: '0.5rem',
+          }}>
+            How it works
+          </h2>
+          <p style={{ textAlign: 'center', color: 'var(--tx3)', fontSize: 14, marginBottom: '2.5rem' }}>
+            Three steps from zero to a full adversarial report
+          </p>
 
-          <SelectField<TaskAgentType>
-            id="task-agent-policy"
-            label="Task Agent Policy"
-            value={taskAgentType}
-            onChange={setTaskAgentType}
-            options={TASK_AGENT_OPTIONS}
-          />
-
-          <SelectField<RedTeamType>
-            id="red-team-policy"
-            label="Red-Team Policy"
-            value={redTeamType}
-            onChange={setRedTeamType}
-            options={RED_TEAM_OPTIONS}
-          />
-
-          <div className="threatsim-note-card">
-            <span>Current pairing</span>
-            <strong>
-              {taskAgentOption?.label ?? 'Task Agent'} versus {redTeamOption?.label ?? 'Red-Team'}.
-            </strong>
-            <p>The arena keeps the same runner and session flow, but the presentation is optimized for live swarm-style demos.</p>
-          </div>
-        </section>
-
-        <section className="card threatsim-panel">
-          <PanelHeader
-            title="Swarm Pressure"
-            description="Set the pressure profile and preview the visual attack lanes that will animate during the run."
-          />
-
-          <SelectField<Difficulty>
-            id="difficulty"
-            label="Difficulty"
-            value={difficulty}
-            onChange={setDifficulty}
-            options={DIFFICULTY_OPTIONS}
-          />
-
-          <div className="threatsim-lane-list">
-            {THREAT_LANES.map((lane) => (
-              <ThreatLaneCard
-                key={lane.label}
-                label={lane.label}
-                persona={lane.persona}
-                detail={lane.detail}
-                strength={lane.strength[difficulty]}
-                tone={lane.tone}
-              />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1rem' }}>
+            {HOW_IT_WORKS.map((item) => (
+              <div key={item.step} style={{
+                background: 'var(--bg3)', border: '1px solid var(--border)',
+                borderRadius: 14, padding: '1.75rem',
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8,
+                  background: 'var(--accent-dim)', border: '1px solid rgba(99,102,241,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 800, color: 'var(--accent)',
+                  marginBottom: '1rem', fontFamily: 'var(--mono)',
+                }}>
+                  {item.step}
+                </div>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--tx)', marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>
+                  {item.title}
+                </h3>
+                <p style={{ fontSize: 13, color: 'var(--tx3)', lineHeight: 1.65 }}>
+                  {item.desc}
+                </p>
+              </div>
             ))}
           </div>
+        </section>
 
-          <div className="threatsim-note-card">
-            <span>Pressure profile</span>
-            <strong>{difficultyOption?.label ?? difficulty}</strong>
-            <p>{difficultyOption?.detail ?? 'Balanced pressure with deceptive UI variants and task-diversion attempts.'}</p>
+        {/* ── Features ── */}
+        <section style={{ padding: '2rem 0' }} className="fade-in">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '1rem' }}>
+            {FEATURES.map((f) => (
+              <div key={f.title} style={{
+                background: 'var(--bg3)', border: '1px solid var(--border)',
+                borderRadius: 14, padding: '1.5rem',
+                display: 'flex', gap: '1rem', alignItems: 'flex-start',
+              }}>
+                <span style={{ fontSize: 24, flexShrink: 0, lineHeight: 1 }}>{f.icon}</span>
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)', marginBottom: '0.3rem', letterSpacing: '-0.01em' }}>
+                    {f.title}
+                  </h3>
+                  <p style={{ fontSize: 13, color: 'var(--tx3)', lineHeight: 1.6 }}>{f.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
-      </section>
 
-      <section className="card threatsim-launch-bar fade-in">
-        <div className="threatsim-launch-copy">
-          <p className="threatsim-kicker">Launch Summary</p>
-          <h2>Ready to simulate {formatTargetLabel(targetUrl)}</h2>
-          <p>
-            The run will start with {taskAgentOption?.label ?? taskAgentType}, apply {redTeamOption?.label ?? redTeamType},
-            and route you directly into the Swarm Defense Arena.
-          </p>
-        </div>
-
-        <div className="threatsim-launch-actions">
-          <button
-            type="button"
-            disabled={starting}
-            onClick={startSimulation}
-            className="threatsim-launch-button"
-            style={{ opacity: starting ? 0.74 : 1 }}
-          >
-            {starting ? 'Launching Run...' : 'Launch Swarm Run'}
-          </button>
-          {startError ? <p className="threatsim-launch-error">{startError}</p> : null}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function HeroStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="threatsim-hero-stat">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function PanelHeader({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="threatsim-panel-header">
-      <p className="threatsim-panel-kicker">Run Config</p>
-      <h3>{title}</h3>
-      <p>{description}</p>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  hint,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  hint: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="threatsim-field">
-      <label className="threatsim-field-label" htmlFor={htmlFor}>
-        {label}
-      </label>
-      {children}
-      <p className="threatsim-field-hint">{hint}</p>
-    </div>
-  );
-}
-
-function ThreatLaneCard({
-  label,
-  persona,
-  detail,
-  strength,
-  tone,
-}: {
-  label: string;
-  persona: string;
-  detail: string;
-  strength: number;
-  tone: 'magenta' | 'cyan' | 'orange' | 'red';
-}) {
-  return (
-    <article className={`threatsim-lane-card is-${tone}`}>
-      <div className="threatsim-lane-head">
-        <div>
-          <h4>{label}</h4>
-          <span>{persona}</span>
-        </div>
-        <strong>{strength}%</strong>
+        {/* ── CTA Banner ── */}
+        <section className="fade-in" style={{
+          background: 'var(--bg3)', border: '1px solid var(--border)',
+          borderRadius: 16, padding: '2.5rem 2rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '2rem', marginTop: '2rem',
+        }}>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--tx)', letterSpacing: '-0.02em', marginBottom: '0.35rem' }}>
+              Ready to run your first test?
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--tx3)' }}>
+              Takes about 2 minutes to configure. Results are instant.
+            </p>
+          </div>
+          <Link href="/configure" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.75rem 1.75rem', background: 'var(--accent)', color: '#fff',
+            fontSize: 14, fontWeight: 700, borderRadius: 999, flexShrink: 0,
+            boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
+          }}>
+            Start a Test →
+          </Link>
+        </section>
       </div>
-      <p>{detail}</p>
-      <div className="threatsim-lane-bar">
-        <div className="threatsim-lane-fill" style={{ width: `${strength}%` }} />
-      </div>
-    </article>
+    </div>
   );
-}
-
-function SelectField<T extends string>({
-  id,
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  id: string;
-  label: string;
-  value: T;
-  onChange: (value: T) => void;
-  options: Array<{ value: T; label: string; detail: string }>;
-}) {
-  const active = options.find((option) => option.value === value);
-
-  return (
-    <Field label={label} htmlFor={id} hint={active?.detail ?? ''}>
-      <select id={id} value={value} onChange={(event) => onChange(event.target.value as T)} className="threatsim-field-control">
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </Field>
-  );
-}
-
-function formatTargetLabel(targetUrl: string) {
-  try {
-    const url = new URL(targetUrl);
-    return url.host.replace(/^www\./i, '');
-  } catch {
-    return targetUrl.trim() || 'Custom URL';
-  }
 }
