@@ -55,6 +55,14 @@ type ShieldCrack = {
   branches: { angle: number; length: number }[];
 };
 
+type Shockwave = {
+  x: number; y: number;
+  radius: number; maxRadius: number;
+  opacity: number; speed: number;
+  r: number; g: number; b: number;
+  lineWidth: number;
+};
+
 type Ambient = {
   x: number; y: number; radius: number;
   drift: number; speed: number; alpha: number;
@@ -80,6 +88,7 @@ export function SwarmCanvas({
   const lightningsRef = useRef<Lightning[]>([]);
   const flashRef      = useRef<ScreenFlash | null>(null);
   const cracksRef     = useRef<ShieldCrack[]>([]);
+  const shockwavesRef = useRef<Shockwave[]>([]);
   const ambientRef    = useRef<Ambient[]>([]);
   const seededRef     = useRef(false);
   const radarAngle    = useRef(0);
@@ -127,13 +136,13 @@ export function SwarmCanvas({
       const shieldR    = Math.min(W, H) * 0.18;
       const healthFrac = Math.max(0, Math.min(1, promptHealth / 100));
 
-      drawHexGrid(ctx, W, H, frame);
-      drawAmbient(ctx, W, H, frame);
+      drawPulseRings(ctx, cx, cy, frame, healthFrac);
       drawRadar(ctx, cx, cy, shieldR, healthFrac);
       drawLightnings(ctx);
       drawParticles(ctx);
       drawBugs(ctx, W, H, cx, cy, shieldR, frame, healthFrac);
       drawRipples(ctx);
+      drawShockwaves(ctx);
       drawShieldCracks(ctx, cx, cy, shieldR);
       drawShield(ctx, cx, cy, shieldR, healthFrac, frame);
       drawScreenFlash(ctx, W, H);
@@ -175,43 +184,27 @@ export function SwarmCanvas({
 
   /* ── Draw helpers ─────────────────────────────────────────────────────── */
 
-  function drawHexGrid(ctx: CanvasRenderingContext2D, W: number, H: number, frame: number) {
-    const size = 32;
-    const w = size * 2;
-    const h = Math.sqrt(3) * size;
-    const pulse = 0.025 + Math.sin(frame * 0.025) * 0.012;
-    ctx.strokeStyle = `rgba(0, 200, 255, ${pulse})`;
-    ctx.lineWidth = 0.5;
-    for (let row = -1; row < H / h + 1; row++) {
-      for (let col = -1; col < W / w + 1; col++) {
-        const xOff = (row % 2 === 0) ? 0 : w * 0.75;
-        drawHex(ctx, col * w * 1.5 + xOff, row * h, size * 0.88);
-      }
-    }
-  }
+  /* Slow expanding rings from center — simple sonar pulse effect */
+  function drawPulseRings(
+    ctx: CanvasRenderingContext2D,
+    cx: number, cy: number,
+    frame: number, healthFrac: number,
+  ) {
+    const color = healthFrac > 0.5 ? '99,102,241' : healthFrac > 0.25 ? '249,115,22' : '239,68,68';
+    const ringCount = 3;
+    const speed = 1.2;
+    const maxR = Math.max(cx, cy) * 1.4;
 
-  function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const a = (Math.PI / 3) * i - Math.PI / 6;
-      i === 0 ? ctx.moveTo(x + r * Math.cos(a), y + r * Math.sin(a))
-              : ctx.lineTo(x + r * Math.cos(a), y + r * Math.sin(a));
-    }
-    ctx.closePath();
-    ctx.stroke();
-  }
-
-  function drawAmbient(ctx: CanvasRenderingContext2D, W: number, H: number, frame: number) {
-    for (const p of ambientRef.current) {
-      p.x += Math.cos(p.drift + frame * 0.006) * p.speed;
-      p.y -= p.speed * 0.4;
-      if (p.x < -20) p.x = W + 20;
-      else if (p.x > W + 20) p.x = -20;
-      if (p.y < -20) p.y = H + 20;
+    for (let i = 0; i < ringCount; i++) {
+      const offset = (i / ringCount) * maxR;
+      const r = ((frame * speed + offset) % maxR);
+      const alpha = (1 - r / maxR) * 0.12;
+      if (alpha < 0.005) continue;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(100,220,255,${p.alpha})`;
-      ctx.fill();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${color},${alpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
   }
 
@@ -274,18 +267,20 @@ export function SwarmCanvas({
           bug.hitAt ??= performance.now();
           bug.vx = -(dx / dist) * 4;
           bug.vy = -(dy / dist) * 4;
+          spawnShockwave(bug.x, bug.y, bug.color, shieldR * 1.6, 'block');
           spawnRipple(bug.x, bug.y, bug.color, 3);
-          spawnExplosion(bug.x, bug.y, bug.color, 20);
+          spawnExplosion(bug.x, bug.y, bug.color, 28);
           spawnLightning(bug.x, bug.y, cx, cy, bug.color);
-          triggerFlash(bug.color, 0.16);
+          triggerFlash(bug.color, 0.22);
         } else if ((bug.outcome === 'successful' || bug.outcome === 'escalated') && dist < shieldR * 0.82) {
           bug.resolved = true;
           bug.hitAt ??= performance.now();
+          spawnShockwave(cx, cy, bug.color, shieldR * 2.8, 'breach');
           spawnRipple(cx, cy, bug.color, 5);
-          spawnExplosion(cx, cy, bug.color, 36);
+          spawnExplosion(cx, cy, bug.color, 48);
           spawnLightning(bug.x, bug.y, cx, cy, bug.color);
           addShieldCrack();
-          triggerFlash(bug.color, bug.outcome === 'escalated' ? 0.42 : 0.3);
+          triggerFlash(bug.color, bug.outcome === 'escalated' ? 0.52 : 0.38);
         } else if (bug.outcome === 'active' && dist < shieldR * 0.76) {
           const orbit = Math.atan2(bug.y - cy, bug.x - cx) + 0.04;
           bug.tx = cx + Math.cos(orbit) * shieldR * 0.8;
@@ -487,6 +482,40 @@ export function SwarmCanvas({
     }
   }
 
+  function drawShockwaves(ctx: CanvasRenderingContext2D) {
+    shockwavesRef.current = shockwavesRef.current.filter(s => s.opacity > 0.005);
+    for (const sw of shockwavesRef.current) {
+      sw.radius  += sw.speed;
+      sw.opacity *= 0.88;
+      const progress = sw.radius / sw.maxRadius;
+      const lw       = sw.lineWidth * (1 - progress * 0.6);
+
+      ctx.save();
+      // Outer glow halo
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${sw.r},${sw.g},${sw.b},${sw.opacity * 0.25})`;
+      ctx.lineWidth   = lw * 4;
+      ctx.stroke();
+      // Main ring
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${sw.r},${sw.g},${sw.b},${sw.opacity})`;
+      ctx.shadowColor = `rgba(${sw.r},${sw.g},${sw.b},0.9)`;
+      ctx.shadowBlur  = 24;
+      ctx.lineWidth   = lw;
+      ctx.stroke();
+      // Inner bright core ring
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,255,255,${sw.opacity * 0.5})`;
+      ctx.lineWidth   = lw * 0.3;
+      ctx.shadowBlur  = 8;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   function drawParticles(ctx: CanvasRenderingContext2D) {
     particlesRef.current = particlesRef.current.filter(p => p.alpha > 0.01);
     for (const p of particlesRef.current) {
@@ -627,6 +656,23 @@ export function SwarmCanvas({
     for (let i = 0; i < count; i++) {
       ripplesRef.current.push({ x, y, radius: 8 + i * 10, opacity: 0.7 - i * 0.1, r: rgb.r, g: rgb.g, b: rgb.b, lineWidth: 2.5 - i * 0.3 });
     }
+  }
+
+  function spawnShockwave(x: number, y: number, color: string, maxRadius: number, type: 'block' | 'breach') {
+    const rgb   = hexToRgb(color);
+    const count = type === 'breach' ? 3 : 2;
+    for (let i = 0; i < count; i++) {
+      shockwavesRef.current.push({
+        x, y,
+        radius:    4 + i * 8,
+        maxRadius: maxRadius * (0.7 + i * 0.2),
+        opacity:   type === 'breach' ? 0.95 - i * 0.15 : 0.85 - i * 0.2,
+        speed:     type === 'breach' ? 8 + i * 3 : 6 + i * 2,
+        r: rgb.r, g: rgb.g, b: rgb.b,
+        lineWidth: type === 'breach' ? 5 - i * 0.8 : 3.5 - i * 0.5,
+      });
+    }
+    if (shockwavesRef.current.length > 20) shockwavesRef.current.splice(0, shockwavesRef.current.length - 20);
   }
 
   function spawnExplosion(x: number, y: number, color: string, count: number) {
