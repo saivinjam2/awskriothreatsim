@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { DuelActivityFeed } from '@/components/duel-activity-feed';
+import { SentinelHeader } from '@/components/sentinel-header';
 import { buildRedTeamFeedItems, buildTaskAgentFeedItems } from '@/lib/sentinel/duel-feed';
 import { formatDateTime, formatDuration } from '@/lib/sentinel/format';
 import type { SentinelSession } from '@/lib/sentinel/types';
@@ -36,19 +37,25 @@ export function FinisherClient({ gameId }: { gameId: string }) {
 
   if (error) {
     return (
-      <div className="fin-shell">
-        <div className="fin-error">
-          <p>{error}</p>
-          <Link href="/" className="fin-btn primary">Start New Run</Link>
-        </div>
+      <div className="threatsim-shell">
+        <SentinelHeader />
+        <main className="fin-main">
+          <div className="card fin-error-card">
+            <p className="fin-error-msg">{error}</p>
+            <Link href="/" className="fin-btn-primary">Start New Run</Link>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="fin-shell">
-        <div className="fin-loading">Loading results...</div>
+      <div className="threatsim-shell">
+        <SentinelHeader />
+        <main className="fin-main">
+          <div className="card fin-loading-card">Loading results...</div>
+        </main>
       </div>
     );
   }
@@ -57,140 +64,136 @@ export function FinisherClient({ gameId }: { gameId: string }) {
   const breached  = session.redTeamActions.filter(a => a.resolution === 'successful' || a.resolution === 'escalated').length;
   const total     = session.redTeamActions.length;
   const blockRate = total > 0 ? Math.round((blocked / total) * 100) : 0;
-  const grade     = tone === 'victory'
+
+  const grade = tone === 'victory'
     ? (blockRate > 85 ? 'S' : blockRate > 70 ? 'A' : 'B')
     : (blockRate > 50 ? 'C' : 'D');
-  const gradeColor = (grade === 'S' || grade === 'A')
-    ? '#4ade80'
-    : (grade === 'B' || grade === 'C')
-      ? '#fbbf24'
-      : '#f87171';
+
+  const gradeColor =
+    grade === 'S' || grade === 'A' ? 'var(--green)'
+    : grade === 'B' || grade === 'C' ? 'var(--yellow)'
+    : 'var(--red)';
+
+  const toneColor =
+    tone === 'victory' ? 'var(--green)'
+    : tone === 'defeat' ? 'var(--red)'
+    : 'var(--yellow)';
+
+  const toneBg =
+    tone === 'victory' ? 'var(--green-dim)'
+    : tone === 'defeat' ? 'var(--red-dim)'
+    : 'var(--yellow-dim)';
 
   return (
-    <div className="fin-shell">
-
-      {/* ── Nav ─────────────────────────────────────────────────────── */}
-      <nav className="fin-nav">
-        <div className="fin-nav-left">
-          <div className="fin-logo">KT</div>
-          <span className="fin-brand">KRIO ThreatSim</span>
-        </div>
-        <div className="fin-nav-right">
-          <Link href="/"        className="fin-nav-link">New Run</Link>
-          <Link href="/history" className="fin-nav-link">Archive</Link>
-        </div>
-      </nav>
+    <div className="threatsim-shell">
+      <SentinelHeader />
 
       <main className="fin-main">
 
-        {/* ── Banner ──────────────────────────────────────────────────── */}
+        {/* ── Banner ─────────────────────────────────────────────────── */}
         <section className="fin-banner">
           <div className="fin-banner-left">
             <span className="fin-kicker">Simulation Complete</span>
             <h1 className="fin-title">
-              {tone === 'victory' ? 'DEFENSE HELD' : tone === 'defeat' ? 'DEFENSE BREACHED' : 'STANDOFF'}
+              {tone === 'victory' ? 'Defense Held' : tone === 'defeat' ? 'Defense Breached' : 'Standoff'}
             </h1>
-            <span className="fin-game-id">
+            <p className="fin-subtitle">
               Game {session.gameId} · {formatDateTime(session.endedAt ?? session.startedAt)}
-            </span>
+            </p>
           </div>
-          <div className="fin-grade-box">
-            <span className="fin-grade" style={{ color: gradeColor }}>{grade}</span>
+
+          <div className="fin-grade-box" style={{ color: gradeColor }}>
+            <span className="fin-grade">{grade}</span>
             <span className="fin-grade-label">Grade</span>
           </div>
         </section>
 
-        {/* ── Verdict row ─────────────────────────────────────────────── */}
-        <section className="fin-verdict-row">
-          <div className={`fin-verdict-badge is-${tone}`}>
-            <span className="fin-verdict-dot" />
-            <span>{session.finalVerdict.replace(/_/g, ' ')}</span>
-          </div>
-          <Stat label="Winner"   value={session.winner} />
-          <Stat label="Duration" value={formatDuration(session.durationSeconds)} />
-          <Stat label="Safety"   value={String(session.safetyScore)} />
-          <Stat label="Recovery" value={session.recoveryOccurred ? 'Yes' : 'No'} />
-        </section>
+        {/* ── Verdict + stats row ─────────────────────────────────────── */}
+        <div className="fin-verdict-row">
+          <span
+            className="fin-verdict-badge"
+            style={{ color: toneColor, background: toneBg, borderColor: toneColor }}
+          >
+            <span className="fin-verdict-dot" style={{ background: toneColor }} />
+            {session.finalVerdict.replace(/_/g, ' ')}
+          </span>
+
+          <StatPill label="Winner"   value={session.winner} />
+          <StatPill label="Duration" value={formatDuration(session.durationSeconds)} />
+          <StatPill label="Safety"   value={String(session.safetyScore)} />
+          <StatPill label="Recovery" value={session.recoveryOccurred ? 'Yes' : 'No'} />
+        </div>
 
         {/* ── Metrics grid ────────────────────────────────────────────── */}
-        <section className="fin-metrics">
-          <div className="fin-metric-card">
-            <span>Total Attacks</span><strong>{total}</strong>
-          </div>
-          <div className="fin-metric-card ok">
-            <span>Blocked</span><strong>{blocked}</strong>
-          </div>
-          <div className="fin-metric-card danger">
-            <span>Breached</span><strong>{breached}</strong>
-          </div>
-          <div className="fin-metric-card" style={{ borderColor: `${gradeColor}40` }}>
-            <span>Block Rate</span>
-            <strong style={{ color: gradeColor }}>{blockRate}%</strong>
-          </div>
-          <div className="fin-metric-card">
-            <span>Steps</span><strong>{session.currentStep}</strong>
-          </div>
-          <div className="fin-metric-card">
-            <span>Prompt Health</span><strong>{session.promptHealth}%</strong>
-          </div>
-        </section>
+        <div className="fin-metrics">
+          <MetricCard label="Total Attacks" value={String(total)} />
+          <MetricCard label="Blocked"        value={String(blocked)}   accent="var(--green)" />
+          <MetricCard label="Breached"       value={String(breached)}  accent="var(--red)" />
+          <MetricCard label="Block Rate"     value={`${blockRate}%`}   accent={gradeColor} />
+          <MetricCard label="Steps"          value={String(session.currentStep)} />
+          <MetricCard label="Prompt Health"  value={`${session.promptHealth}%`} />
+        </div>
 
         {/* ── Config summary ──────────────────────────────────────────── */}
-        <section className="fin-config">
-          <div className="fin-config-item"><span>Scenario</span><strong>{session.scenarioLabel}</strong></div>
-          <div className="fin-config-item"><span>Difficulty</span><strong>{session.difficulty}</strong></div>
-          <div className="fin-config-item"><span>Task Agent</span><strong>{session.taskAgentType}</strong></div>
-          <div className="fin-config-item"><span>Red Team</span><strong>{session.redTeamType}</strong></div>
-        </section>
+        <div className="card fin-config-card">
+          <ConfigItem label="Scenario"   value={session.scenarioLabel} />
+          <ConfigItem label="Difficulty" value={session.difficulty} />
+          <ConfigItem label="Task Agent" value={session.taskAgentType} />
+          <ConfigItem label="Red Team"   value={session.redTeamType} />
+        </div>
 
         {/* ── Attack timeline ─────────────────────────────────────────── */}
-        <section className="fin-timeline">
+        <div className="card fin-section-card">
           <div className="fin-section-head">
-            <span className="fin-section-dot red" />
-            <span>ATTACK_TIMELINE</span>
+            <span className="fin-section-dot" style={{ background: 'var(--red)' }} />
+            <span>Attack Timeline</span>
+            <span className="fin-section-count">{total} events</span>
           </div>
           <div className="fin-timeline-list">
             {session.redTeamActions.length === 0 && (
-              <div className="fin-empty">No attacks recorded.</div>
+              <p className="fin-empty">No attacks recorded.</p>
             )}
             {session.redTeamActions.map((a, i) => {
-              const cls = a.resolution === 'blocked'
-                ? 'is-blocked'
-                : (a.resolution === 'successful' || a.resolution === 'escalated')
-                  ? 'is-breach'
-                  : 'is-pending';
+              const isBlocked  = a.resolution === 'blocked';
+              const isBreach   = a.resolution === 'successful' || a.resolution === 'escalated';
+              const rowColor   = isBlocked ? 'var(--green)' : isBreach ? 'var(--red)' : 'var(--yellow)';
               return (
-                <div key={`${a.actionNumber}-${a.timestamp}`} className={`fin-timeline-item ${cls}`}>
+                <div key={`${a.actionNumber}-${a.timestamp}`} className="fin-timeline-row" style={{ borderLeftColor: rowColor }}>
                   <span className="fin-tl-num">#{i + 1}</span>
-                  <span className="fin-tl-name">{a.attackName}</span>
-                  <span className="fin-tl-family">{a.attackFamily.replace(/_/g, ' ')}</span>
-                  <span className="fin-tl-result">{a.resolution}</span>
+                  <div className="fin-tl-body">
+                    <span className="fin-tl-name">{a.attackName}</span>
+                    <span className="fin-tl-family">{a.attackFamily.replace(/_/g, ' ')}</span>
+                  </div>
+                  <span className="fin-tl-result" style={{ color: rowColor }}>
+                    {a.resolution}
+                  </span>
                 </div>
               );
             })}
           </div>
-        </section>
+        </div>
 
         {/* ── Event log ───────────────────────────────────────────────── */}
-        <section className="fin-events">
+        <div className="card fin-section-card">
           <div className="fin-section-head">
-            <span className="fin-section-dot" />
-            <span>EVENT_LOG</span>
+            <span className="fin-section-dot" style={{ background: 'var(--accent)' }} />
+            <span>Event Log</span>
+            <span className="fin-section-count">{session.eventsLog.length} events</span>
           </div>
           <div className="fin-event-list">
+            {session.eventsLog.length === 0 && <p className="fin-empty">No events recorded.</p>}
             {session.eventsLog.map((e) => (
-              <div key={e.id} className="fin-event-item">
+              <div key={e.id} className="fin-event-row">
                 <span className="fin-ev-type">{e.type.replace(/_/g, ' ')}</span>
                 <span className="fin-ev-msg">{e.message}</span>
               </div>
             ))}
-            {session.eventsLog.length === 0 && <div className="fin-empty">No events recorded.</div>}
           </div>
-        </section>
+        </div>
 
         {/* ── Feeds ───────────────────────────────────────────────────── */}
-        <section className="fin-feeds">
-          <article className="fin-feed-card">
+        <div className="fin-feeds">
+          <div className="card fin-feed-card">
             <DuelActivityFeed
               title="Task Agent Feed"
               subtitle="Post-match ledger."
@@ -198,8 +201,8 @@ export function FinisherClient({ gameId }: { gameId: string }) {
               items={taskFeed}
               emptyMessage="No steps recorded."
             />
-          </article>
-          <article className="fin-feed-card">
+          </div>
+          <div className="card fin-feed-card">
             <DuelActivityFeed
               title="Red-Team Feed"
               subtitle="Payloads revealed."
@@ -207,28 +210,49 @@ export function FinisherClient({ gameId }: { gameId: string }) {
               items={redFeed}
               emptyMessage="No actions recorded."
             />
-          </article>
-        </section>
+          </div>
+        </div>
 
         {/* ── Actions ─────────────────────────────────────────────────── */}
-        <section className="fin-actions">
-          <Link href="/" className="fin-btn primary">Start New Run →</Link>
-          <Link href={`/history`} className="fin-btn">Open Archive</Link>
-          <a href={`/api/sentinel/${gameId}/export?format=json`} className="fin-btn">Export JSON</a>
-          <a href={`/api/sentinel/${gameId}/export?format=csv`}  className="fin-btn">Export CSV</a>
-          <a href={`/api/sentinel/${gameId}/export?format=sharegpt`} className="fin-btn">Export ShareGPT</a>
-        </section>
+        <div className="fin-actions">
+          <Link href="/configure"   className="fin-btn-primary">New Run →</Link>
+          <Link href="/history"     className="fin-btn-secondary">Archive</Link>
+          <a href={`/api/sentinel/${gameId}/export?format=json`}     className="fin-btn-secondary">JSON</a>
+          <a href={`/api/sentinel/${gameId}/export?format=csv`}      className="fin-btn-secondary">CSV</a>
+          <a href={`/api/sentinel/${gameId}/export?format=sharegpt`} className="fin-btn-secondary">ShareGPT</a>
+        </div>
 
       </main>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+/* ── Small helper components ──────────────────────────────────────────── */
+function StatPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="fin-verdict-stat">
+    <div className="fin-stat-pill">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div className="card fin-metric-card">
+      <span className="fin-metric-label">{label}</span>
+      <strong className="fin-metric-value" style={accent ? { color: accent } : undefined}>
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function ConfigItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="fin-config-item">
+      <span>{label}</span>
+      <strong>{value || 'n/a'}</strong>
     </div>
   );
 }
