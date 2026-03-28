@@ -5,24 +5,28 @@ import { usePathname } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const links = [
-  { href: '/history', label: 'History' },
-  { href: '/dataset', label: 'Dataset' },
+  { href: '/history', label: 'Run Archive' },
+  { href: '/dataset', label: 'Trace Explorer' },
 ];
 
 export function SentinelHeader() {
   const pathname = usePathname();
 
   return (
-    <header className="ag-topbar fade-in">
-      <div className="ag-topbar-left">
-        <Link href="/" className="ag-home-badge" aria-label="Agent Gauntlet home">
-          <span className="ag-home-badge-rim" aria-hidden="true" />
-          <span className="ag-home-badge-mark">AG</span>
+    <header className="threatsim-header fade-in">
+      <div className="threatsim-header-brand">
+        <Link href="/" className="threatsim-home-badge" aria-label="KRIO ThreatSim home">
+          <span className="threatsim-home-badge-rim" aria-hidden="true" />
+          <span className="threatsim-home-badge-mark">KT</span>
         </Link>
+        <div className="threatsim-header-copy">
+          <p>KRIO ThreatSim</p>
+          <span>Swarm Defense Arena</span>
+        </div>
       </div>
 
-      <div className="ag-nav">
-        <nav className="ag-nav-links" aria-label="Primary">
+      <div className="threatsim-header-nav">
+        <nav className="threatsim-nav-links" aria-label="Primary">
           {links.map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
@@ -33,7 +37,7 @@ export function SentinelHeader() {
           })}
         </nav>
 
-        <div className="ag-nav-tools">
+        <div className="threatsim-nav-tools">
           <ThemeToggle />
         </div>
       </div>

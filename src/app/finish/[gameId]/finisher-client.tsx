@@ -112,7 +112,7 @@ export function FinisherClient({ gameId }: { gameId: string }) {
         ?.textContent?.trim()
         .toLowerCase()
         .replace(/\s+/g, '-') ?? 'result';
-      link.download = `agent-gauntlet-${outcome}-poster.png`;
+      link.download = `krio-threatsim-${outcome}-report.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } finally {
@@ -128,7 +128,7 @@ export function FinisherClient({ gameId }: { gameId: string }) {
           <p className="text-sm text-[var(--red)]">{error}</p>
           <div className="mt-4">
             <Link href="/" className="startbtn block w-full text-center">
-              DRAW AGAIN
+              START NEW RUN
             </Link>
           </div>
         </section>
@@ -154,17 +154,17 @@ export function FinisherClient({ gameId }: { gameId: string }) {
       <SentinelHeader />
 
       <section className="card mb-4 p-4 md:p-5 fade-in">
-        <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Post-Battle Finisher</p>
-        <h1 className="mt-1 text-3xl font-semibold">Match Complete</h1>
+        <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">ThreatSim Run Summary</p>
+        <h1 className="mt-1 text-3xl font-semibold">Run Complete</h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Game {session.gameId} • Completed {formatDateTime(session.endedAt ?? session.startedAt)}
+          Game {session.gameId} / Completed {formatDateTime(session.endedAt ?? session.startedAt)}
         </p>
       </section>
 
       <section className="finisher-layout fade-in">
         <article id="lobby-bounty-paper" className="bounty-paper">
-          <p className="bounty-brand">SENTINEL ARENA // AGENT GAUNTLET</p>
-          <h2 className="bounty-title">BATTLE RESULTS</h2>
+          <p className="bounty-brand">KRIO THREATSIM // SWARM DEFENSE</p>
+          <h2 className="bounty-title">RUN REPORT</h2>
 
           <div
             className={`bounty-outcome ${
@@ -212,7 +212,7 @@ export function FinisherClient({ gameId }: { gameId: string }) {
         <aside className="card p-4 md:p-5 finisher-side">
           <h3 className="text-lg font-semibold">Final Match Data</h3>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            A cinematic bounty poster for judges and exports. Save this card as a clean PNG.
+            A clean ThreatSim report card for demos and exports. Save this card as a PNG if you want a static artifact.
           </p>
 
           <div className="mt-4 space-y-2 text-sm">
@@ -261,11 +261,11 @@ export function FinisherClient({ gameId }: { gameId: string }) {
             onMouseLeave={() => setIsHoveringSave(false)}
             disabled={isSavingPoster}
           >
-            {isSavingPoster ? '↓ SAVING POSTER...' : '↓ SAVE POSTER'}
+            {isSavingPoster ? 'SAVING REPORT...' : 'SAVE REPORT PNG'}
           </button>
 
           <Link href="/" className="startbtn mt-3 block w-full text-center">
-            DRAW AGAIN
+            START NEW RUN
           </Link>
 
           <Link href={`/history/${session.gameId}`} className="chip chip-accent mt-3 inline-flex">

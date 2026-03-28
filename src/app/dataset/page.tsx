@@ -65,9 +65,9 @@ export default function DatasetPage() {
       <SentinelHeader />
 
       <section className="card mb-4 p-4 fade-in">
-        <h2 className="mb-2 text-2xl font-semibold">Dataset Explorer</h2>
+        <h2 className="mb-2 text-2xl font-semibold">Trace Explorer</h2>
         <p className="mb-3 text-sm text-[var(--text-muted)]">
-          Search all logged episodes and step trajectories. Export to JSON, CSV, or ShareGPT JSONL for downstream training.
+          Search all logged runs and step trajectories. Export to JSON, CSV, or ShareGPT JSONL for downstream analysis and training.
         </p>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

@@ -3045,6 +3045,623 @@ html[data-theme='light'] .theme-toggle:focus-visible {
   }
 }
 
+.threatsim-shell {
+  --threatsim-bg: rgba(4, 20, 36, 0.84);
+  --threatsim-bg-2: rgba(8, 31, 55, 0.86);
+  --threatsim-border: rgba(0, 229, 255, 0.18);
+  --threatsim-border-strong: rgba(0, 229, 255, 0.32);
+  --threatsim-text: #e6fbff;
+  --threatsim-muted: #8eb3c7;
+  --threatsim-cyan: #00e5ff;
+  --threatsim-magenta: #ff2f92;
+  --threatsim-orange: #ff9a1f;
+  --threatsim-red: #ff4f67;
+}
+
+.threatsim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0 1.2rem;
+}
+
+.threatsim-header-brand,
+.threatsim-header-nav,
+.threatsim-nav-links,
+.threatsim-nav-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.threatsim-home-badge {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.threatsim-home-badge-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.26), transparent 34%),
+    linear-gradient(180deg, rgba(0, 229, 255, 0.92), rgba(8, 93, 132, 0.96));
+  box-shadow:
+    0 0 28px rgba(0, 229, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.threatsim-home-badge-mark {
+  position: relative;
+  z-index: 1;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #02141f;
+  letter-spacing: 0.12em;
+}
+
+.threatsim-header-copy p {
+  color: var(--text);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.threatsim-header-copy span {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.threatsim-nav-links a {
+  border: 1px solid transparent;
+  padding: 0.42rem 0.75rem;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.threatsim-nav-links a.active,
+.threatsim-nav-links a:hover {
+  border-color: rgba(0, 229, 255, 0.22);
+  background: rgba(0, 229, 255, 0.07);
+  color: var(--text);
+}
+
+.threatsim-hero,
+.threatsim-panel,
+.threatsim-launch-bar {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(5, 21, 38, 0.84), rgba(2, 12, 24, 0.92)),
+    radial-gradient(circle at top, rgba(0, 229, 255, 0.07), transparent 40%);
+  border: 1px solid rgba(0, 229, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 36px rgba(0, 0, 0, 0.22);
+}
+
+.threatsim-hero::before,
+.threatsim-panel::before,
+.threatsim-launch-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 18%),
+    repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(120, 198, 230, 0.06) 24px, rgba(120, 198, 230, 0.06) 25px);
+}
+
+.threatsim-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+  gap: 1.2rem;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.threatsim-hero-copy,
+.threatsim-hero-visual,
+.threatsim-panel-header,
+.threatsim-note-card,
+.threatsim-launch-copy,
+.threatsim-launch-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.threatsim-kicker,
+.threatsim-panel-kicker {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.threatsim-title {
+  margin-top: 0.45rem;
+  color: #f2feff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+  line-height: 0.95;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 28px rgba(0, 229, 255, 0.18);
+}
+
+.threatsim-subtitle {
+  margin-top: 0.7rem;
+  color: #bfefff;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.threatsim-deck {
+  max-width: 42rem;
+  margin-top: 0.7rem;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+
+.threatsim-hero-actions,
+.threatsim-hero-stats,
+.threatsim-launch-grid,
+.threatsim-field-grid,
+.threatsim-lane-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.threatsim-hero-actions {
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  margin-top: 1rem;
+}
+
+.threatsim-primary-link,
+.threatsim-secondary-link,
+.threatsim-launch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0.78rem 1.1rem;
+  border: 1px solid transparent;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.threatsim-primary-link,
+.threatsim-launch-button {
+  color: #02141f;
+  background: linear-gradient(135deg, #00e5ff, #43f0c2);
+  box-shadow: 0 0 26px rgba(0, 229, 255, 0.18);
+}
+
+.threatsim-secondary-link {
+  color: var(--text);
+  border-color: rgba(0, 229, 255, 0.22);
+  background: rgba(0, 229, 255, 0.06);
+}
+
+.threatsim-hero-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.threatsim-hero-stat,
+.threatsim-note-card,
+.threatsim-field,
+.threatsim-lane-card {
+  border: 1px solid rgba(0, 229, 255, 0.12);
+  background: rgba(8, 29, 50, 0.62);
+  padding: 0.78rem 0.86rem;
+}
+
+.threatsim-hero-stat span,
+.threatsim-note-card span,
+.threatsim-field-label {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.threatsim-hero-stat strong,
+.threatsim-note-card strong {
+  display: block;
+  margin-top: 0.26rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.threatsim-launch-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.9fr) minmax(300px, 0.95fr);
+  margin-bottom: 1rem;
+}
+
+.threatsim-panel {
+  padding: 1rem;
+}
+
+.threatsim-panel-wide {
+  min-width: 0;
+}
+
+.threatsim-panel-header h3 {
+  margin-top: 0.32rem;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-family: 'Chakra Petch', sans-serif;
+}
+
+.threatsim-panel-header p:last-child,
+.threatsim-note-card p,
+.threatsim-field-hint,
+.threatsim-lane-card p,
+.threatsim-launch-copy p {
+  margin-top: 0.3rem;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.threatsim-field-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.9rem;
+}
+
+.threatsim-field {
+  margin-top: 0.9rem;
+}
+
+.threatsim-field-control {
+  width: 100%;
+  margin-top: 0.45rem;
+  border: 1px solid rgba(0, 229, 255, 0.16);
+  background: rgba(2, 16, 30, 0.82);
+  color: var(--text);
+  padding: 0.78rem 0.86rem;
+  font-size: 0.82rem;
+}
+
+.threatsim-field-textarea {
+  resize: vertical;
+  min-height: 126px;
+}
+
+.threatsim-note-card {
+  margin-top: 0.95rem;
+}
+
+.threatsim-lane-list {
+  margin-top: 0.9rem;
+}
+
+.threatsim-lane-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.threatsim-lane-head h4 {
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.threatsim-lane-head span {
+  display: block;
+  margin-top: 0.14rem;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.threatsim-lane-head strong {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+}
+
+.threatsim-lane-card.is-magenta .threatsim-lane-head strong,
+.threatsim-lane-card.is-magenta .threatsim-lane-fill {
+  color: #ff2f92;
+  background: linear-gradient(90deg, rgba(255, 47, 146, 0.24), #ff2f92);
+}
+
+.threatsim-lane-card.is-cyan .threatsim-lane-head strong,
+.threatsim-lane-card.is-cyan .threatsim-lane-fill {
+  color: #00e5ff;
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.24), #00e5ff);
+}
+
+.threatsim-lane-card.is-orange .threatsim-lane-head strong,
+.threatsim-lane-card.is-orange .threatsim-lane-fill {
+  color: #ff9a1f;
+  background: linear-gradient(90deg, rgba(255, 154, 31, 0.24), #ff9a1f);
+}
+
+.threatsim-lane-card.is-red .threatsim-lane-head strong,
+.threatsim-lane-card.is-red .threatsim-lane-fill {
+  color: #ff4f67;
+  background: linear-gradient(90deg, rgba(255, 79, 103, 0.24), #ff4f67);
+}
+
+.threatsim-lane-bar {
+  height: 6px;
+  margin-top: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.threatsim-lane-fill {
+  display: block;
+  height: 100%;
+}
+
+.threatsim-launch-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.threatsim-launch-copy h2 {
+  margin-top: 0.3rem;
+  color: var(--text);
+  font-size: 1.35rem;
+  font-family: 'Chakra Petch', sans-serif;
+}
+
+.threatsim-launch-actions {
+  min-width: 280px;
+}
+
+.threatsim-launch-button {
+  width: 100%;
+  border: 0;
+}
+
+.threatsim-launch-error {
+  margin-top: 0.55rem;
+  color: #ff7b91;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.threatsim-scene {
+  position: relative;
+  min-height: 420px;
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  background:
+    radial-gradient(circle at center, rgba(0, 229, 255, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(4, 24, 42, 0.98), rgba(2, 10, 20, 0.98));
+  overflow: hidden;
+}
+
+.threatsim-scene-grid,
+.threatsim-scene-orb,
+.threatsim-scene-particles,
+.threatsim-fish-school,
+.threatsim-viewport-node,
+.threatsim-agent-card {
+  position: absolute;
+}
+
+.threatsim-scene-grid {
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(95, 177, 214, 0.06), rgba(95, 177, 214, 0.06) 1px, transparent 1px, transparent 42px),
+    repeating-linear-gradient(0deg, rgba(95, 177, 214, 0.05), rgba(95, 177, 214, 0.05) 1px, transparent 1px, transparent 42px);
+  opacity: 0.5;
+}
+
+.threatsim-scene-orb {
+  inset: 12% auto auto 50%;
+  width: 320px;
+  height: 320px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.16), transparent 62%);
+  filter: blur(8px);
+}
+
+.threatsim-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(140, 240, 255, 0.6);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.26);
+}
+
+.threatsim-particle.p-0 { top: 12%; left: 18%; }
+.threatsim-particle.p-1 { top: 20%; left: 76%; }
+.threatsim-particle.p-2 { top: 32%; left: 10%; }
+.threatsim-particle.p-3 { top: 70%; left: 84%; }
+
+.threatsim-agent-card {
+  width: 150px;
+  padding: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(5, 22, 39, 0.84);
+  backdrop-filter: blur(10px);
+}
+
+.threatsim-agent-card.is-task {
+  left: 1rem;
+  top: 1rem;
+  border-color: rgba(0, 229, 255, 0.22);
+}
+
+.threatsim-agent-card.is-red {
+  right: 1rem;
+  top: 1rem;
+  border-color: rgba(255, 47, 146, 0.22);
+}
+
+.threatsim-agent-card p,
+.threatsim-agent-card span {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.threatsim-agent-card strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.threatsim-viewport-node {
+  inset: 22% auto auto 50%;
+  width: min(420px, calc(100% - 6rem));
+  transform: translateX(-50%);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  background: rgba(3, 18, 34, 0.92);
+  box-shadow: 0 0 32px rgba(0, 229, 255, 0.08);
+}
+
+.threatsim-viewport-head {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.65rem 0.78rem;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+}
+
+.threatsim-viewport-head span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(140, 240, 255, 0.52);
+}
+
+.threatsim-viewport-head p {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.threatsim-viewport-body {
+  position: relative;
+  height: 190px;
+  display: grid;
+  place-items: center;
+}
+
+.threatsim-viewport-screen {
+  position: relative;
+  z-index: 2;
+  width: 72%;
+  height: 62%;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(11, 40, 66, 0.84), rgba(4, 18, 30, 0.9)),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 4px);
+  padding: 1rem;
+}
+
+.threatsim-screen-line {
+  height: 10px;
+  background: rgba(140, 240, 255, 0.16);
+  margin-bottom: 0.5rem;
+}
+
+.threatsim-screen-line.short {
+  width: 56%;
+}
+
+.threatsim-screen-blocks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.threatsim-screen-blocks span {
+  height: 58px;
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.threatsim-shield-ring {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.threatsim-shield-ring.ring-1 {
+  width: 270px;
+  height: 170px;
+}
+
+.threatsim-shield-ring.ring-2 {
+  width: 330px;
+  height: 220px;
+}
+
+.threatsim-fish-school {
+  inset: 0;
+}
+
+.threatsim-fish {
+  position: absolute;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px 999px 999px 999px / 60% 60% 40% 40%;
+}
+
+.threatsim-fish::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  clip-path: polygon(100% 50%, 0 0, 0 100%);
+  background: inherit;
+}
+
+.fish-magenta { top: 30%; left: 8%; background: #ff2f92; box-shadow: 0 0 18px rgba(255, 47, 146, 0.24); }
+.fish-cyan { top: 62%; left: 16%; background: #00e5ff; box-shadow: 0 0 18px rgba(0, 229, 255, 0.24); }
+.fish-orange { top: 68%; right: 12%; background: #ff9a1f; box-shadow: 0 0 18px rgba(255, 154, 31, 0.24); }
+.fish-red { top: 38%; right: 8%; background: #ff4f67; box-shadow: 0 0 18px rgba(255, 79, 103, 0.24); }
+.fish-yellow { top: 16%; right: 26%; background: #f7e36b; box-shadow: 0 0 18px rgba(247, 227, 107, 0.2); }
+
+.threatsim-shell .card,
+.threatsim-header,
+.threatsim-hero,
+.threatsim-panel,
+.threatsim-launch-bar,
+.threatsim-scene {
+  border-radius: 0;
+}
+
 body.swarm-mode::before {
   background-image:
     radial-gradient(circle at 20% 18%, rgba(0, 229, 255, 0.12), transparent 28%),
@@ -3732,6 +4349,12 @@ body.swarm-mode::after {
 }
 
 @media (max-width: 1240px) {
+  .threatsim-hero,
+  .threatsim-launch-grid,
+  .threatsim-launch-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .swarm-top-grid,
   .swarm-core-grid,
   .swarm-lower-grid {
@@ -3744,6 +4367,23 @@ body.swarm-mode::after {
 }
 
 @media (max-width: 720px) {
+  .threatsim-header,
+  .threatsim-header-brand,
+  .threatsim-header-nav,
+  .threatsim-nav-links {
+    flex-wrap: wrap;
+  }
+
+  .threatsim-hero-stats,
+  .threatsim-field-grid,
+  .threatsim-hero-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .threatsim-viewport-node {
+    width: calc(100% - 2rem);
+  }
+
   .swarm-hud-metrics,
   .swarm-mini-grid,
   .threat-table-head,

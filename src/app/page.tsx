@@ -9,30 +9,34 @@ import { DIFFICULTY_OPTIONS, RED_TEAM_OPTIONS, TASK_AGENT_OPTIONS } from '@/lib/
 import { LIVE_WEB_PRESETS } from '@/lib/sentinel/live-web-presets';
 import type { Difficulty, RedTeamType, TaskAgentType } from '@/lib/sentinel/types';
 
-const ATTACK_FAMILIES = [
+const THREAT_LANES = [
   {
     label: 'Prompt Injection',
-    detail: 'Override attempts aimed at bending the task contract.',
-    baseStrength: 78,
-    tone: 'red' as const,
+    persona: 'Injector',
+    detail: 'Instruction overrides, poisoned context, and alignment drift attempts.',
+    strength: { easy: 64, medium: 78, hard: 92 },
+    tone: 'magenta',
   },
   {
     label: 'UI Deception',
-    detail: 'Fake trust signals, misleading labels, and deceptive calls-to-action.',
-    baseStrength: 56,
-    tone: 'gold' as const,
+    persona: 'Deceiver',
+    detail: 'Fake trust cues, relabeled controls, and manipulative calls to action.',
+    strength: { easy: 48, medium: 62, hard: 80 },
+    tone: 'cyan',
   },
   {
     label: 'Task Diversion',
-    detail: 'Detours that waste steps or lure the agent off the requested path.',
-    baseStrength: 44,
-    tone: 'gold' as const,
+    persona: 'Chainmaker',
+    detail: 'Urgent detours that waste steps or redirect the browser agent.',
+    strength: { easy: 40, medium: 56, hard: 76 },
+    tone: 'orange',
   },
   {
     label: 'Data Exfil Bait',
-    detail: 'Irrelevant prompts for sensitive or unnecessary content.',
-    baseStrength: 33,
-    tone: 'red' as const,
+    persona: 'Exfiltrator',
+    detail: 'Requests for irrelevant secrets, credentials, or hidden internal state.',
+    strength: { easy: 34, medium: 46, hard: 68 },
+    tone: 'red',
   },
 ];
 
@@ -102,229 +106,256 @@ export default function LobbyPage() {
   const redTeamOption = RED_TEAM_OPTIONS.find((option) => option.value === redTeamType);
 
   return (
-    <main className="sentinel-shell lobby-shell">
+    <main className="sentinel-shell threatsim-shell">
       <SentinelHeader />
 
-      <section className="ag-hero lobby-hero fade-in">
-        <div className="hero-glow" />
-
-        <div className="lobby-hero-copy">
-          <p className="hero-kicker">Frontier Browser Agent Showdown</p>
-          <h1 className="hero-title">
-            AGENT <span>GAUNTLET</span>
-          </h1>
-          <p className="hero-sub">Adversarial evaluation harness for live browser agents.</p>
-          <p className="hero-deck">
-            Stress-test a sheriff-style browser agent against an outlaw red team on real websites. Set the contract, draw the
-            matchup, and launch straight into the arena.
+      <section className="threatsim-hero fade-in">
+        <div className="threatsim-hero-copy">
+          <p className="threatsim-kicker">Live Browser Agent Adversarial Simulation</p>
+          <h1 className="threatsim-title">KRIO THREATSIM</h1>
+          <p className="threatsim-subtitle">Swarm Defense Arena for red-teaming browser agents on live sites.</p>
+          <p className="threatsim-deck">
+            Launch a live run, keep the real website centered, and watch actual red-team events materialize as attack lanes,
+            telemetry, and fish-like pressure around the viewport.
           </p>
 
-          <div className="hero-cta-row">
-            <a href="#duel-setup" className="hero-cta">
-              Prepare the Duel
+          <div className="threatsim-hero-actions">
+            <a href="#run-setup" className="threatsim-primary-link">
+              Configure Run
             </a>
-            <Link href="/history" className="hero-secondary-link">
-              Review Match History
+            <Link href="/history" className="threatsim-secondary-link">
+              Open Run Archive
             </Link>
+          </div>
+
+          <div className="threatsim-hero-stats">
+            <HeroStat label="Viewport-led" value="Live website in center" />
+            <HeroStat label="Threat lanes" value="4 active, 2 reserved" />
+            <HeroStat label="Telemetry" value="Blocked, impact, immunity" />
           </div>
         </div>
 
-        <div className="lobby-hero-stage">
+        <div className="threatsim-hero-visual">
           <AgentDuel taskAgentType={taskAgentType} redTeamType={redTeamType} />
         </div>
       </section>
 
-      <section id="duel-setup" className="card lobby-setup-board fade-in">
-        <div className="lobby-setup-head">
-          <p className="setup-kicker">Duel Setup Board</p>
-          <h2 className="setup-title">One contract. One sheriff. One outlaw.</h2>
-          <p className="setup-copy">Everything needed to launch the live web duel sits in this board. Advanced settings can land here later.</p>
-        </div>
+      <section id="run-setup" className="threatsim-launch-grid fade-in">
+        <section className="card threatsim-panel threatsim-panel-wide">
+          <PanelHeader
+            title="Target And Objective"
+            description="Point the run at a live site or local scenario page and define the exact objective the task agent must complete."
+          />
 
-        <div className="lobby-setup-grid">
-          <section className="card lobby-panel lobby-panel-contract">
-            <PanelHeader
-              title="Scenario / Contract"
-              description="Pick the target site and define the exact objective the sheriff has to complete."
-            />
+          <div className="threatsim-field-grid">
+            <Field label="Preset" htmlFor="live-preset" hint={selectedPreset ? 'Loads a ready-made target and editable objective.' : 'Use any read-only URL and write the task yourself.'}>
+              <select
+                id="live-preset"
+                value={livePresetId}
+                onChange={(event) => setLivePresetId(event.target.value)}
+                className="threatsim-field-control"
+              >
+                {LIVE_WEB_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+                <option value="custom">Custom URL + Task</option>
+              </select>
+            </Field>
 
-            <div className="lobby-field-grid">
-              <div className="lobby-field">
-                <label className="lobby-field-label" htmlFor="live-preset">
-                  Live Site Preset
-                </label>
-                <select
-                  id="live-preset"
-                  value={livePresetId}
-                  onChange={(event) => setLivePresetId(event.target.value)}
-                  className="lobby-field-control"
-                >
-                  {LIVE_WEB_PRESETS.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </option>
-                  ))}
-                  <option value="custom">Custom URL + Task</option>
-                </select>
-                <p className="lobby-field-copy">
-                  {selectedPreset ? 'Loads a ready-made target and contract that you can edit before launch.' : 'Point the duel at any read-only site and write the contract yourself.'}
-                </p>
-              </div>
-
-              <div className="lobby-field">
-                <label className="lobby-field-label" htmlFor="target-url">
-                  Live Target URL
-                </label>
-                <input
-                  id="target-url"
-                  type="url"
-                  value={targetUrl}
-                  onChange={(event) => {
-                    setLivePresetId('custom');
-                    setTargetUrl(event.target.value);
-                  }}
-                  className="lobby-field-control"
-                  placeholder="https://example.com"
-                />
-                <p className="lobby-field-copy">Use read-only targets and avoid auth, account, or checkout flows.</p>
-              </div>
-            </div>
-
-            <div className="lobby-field">
-              <label className="lobby-field-label" htmlFor="task-instructions">
-                Task Instructions
-              </label>
-              <textarea
-                id="task-instructions"
-                value={customTask}
+            <Field label="Target URL" htmlFor="target-url" hint="Use localhost scenario pages or any reachable http(s) target.">
+              <input
+                id="target-url"
+                type="url"
+                value={targetUrl}
                 onChange={(event) => {
                   setLivePresetId('custom');
-                  setCustomTask(event.target.value);
+                  setTargetUrl(event.target.value);
                 }}
-                rows={4}
-                className="lobby-field-control lobby-field-textarea"
+                className="threatsim-field-control"
+                placeholder="https://example.com"
               />
-              <p className="lobby-field-copy">This contract is sent directly to the task agent when the duel starts.</p>
-            </div>
-          </section>
+            </Field>
+          </div>
 
-          <section className="card lobby-panel">
-            <PanelHeader
-              title="Policies"
-              description="Choose how the sheriff reasons about risk and how the outlaw applies pressure."
+          <Field
+            label="Task Instructions"
+            htmlFor="task-instructions"
+            hint="This objective is handed directly to the task agent at run start."
+          >
+            <textarea
+              id="task-instructions"
+              value={customTask}
+              onChange={(event) => {
+                setLivePresetId('custom');
+                setCustomTask(event.target.value);
+              }}
+              rows={4}
+              className="threatsim-field-control threatsim-field-textarea"
             />
+          </Field>
+        </section>
 
-            <SelectField<TaskAgentType>
-              id="task-agent-policy"
-              label="Task Agent Policy"
-              value={taskAgentType}
-              onChange={setTaskAgentType}
-              options={TASK_AGENT_OPTIONS}
-            />
+        <section className="card threatsim-panel">
+          <PanelHeader
+            title="Policy Pairing"
+            description="Choose how the task agent evaluates risk and how the red team generates pressure."
+          />
 
-            <SelectField<RedTeamType>
-              id="red-team-policy"
-              label="Red-Team Policy"
-              value={redTeamType}
-              onChange={setRedTeamType}
-              options={RED_TEAM_OPTIONS}
-            />
+          <SelectField<TaskAgentType>
+            id="task-agent-policy"
+            label="Task Agent Policy"
+            value={taskAgentType}
+            onChange={setTaskAgentType}
+            options={TASK_AGENT_OPTIONS}
+          />
 
-            <div className="lobby-panel-note">
-              <span className="lobby-panel-note-label">Matchup</span>
-              <p className="lobby-panel-note-copy">
-                {taskAgentOption?.label ?? 'Task Agent'} stays on-contract while {redTeamOption?.label ?? 'Red-Team'} hunts for
-                openings to divert, deceive, or override intent.
-              </p>
-            </div>
-          </section>
+          <SelectField<RedTeamType>
+            id="red-team-policy"
+            label="Red-Team Policy"
+            value={redTeamType}
+            onChange={setRedTeamType}
+            options={RED_TEAM_OPTIONS}
+          />
 
-          <section className="card lobby-panel">
-            <PanelHeader
-              title="Attack Profile / Difficulty"
-              description="Set the pressure level and inspect the attack families likely to define the match."
-            />
+          <div className="threatsim-note-card">
+            <span>Current pairing</span>
+            <strong>
+              {taskAgentOption?.label ?? 'Task Agent'} versus {redTeamOption?.label ?? 'Red-Team'}.
+            </strong>
+            <p>The arena keeps the same runner and session flow, but the presentation is optimized for live swarm-style demos.</p>
+          </div>
+        </section>
 
-            <SelectField<Difficulty>
-              id="difficulty"
-              label="Difficulty"
-              value={difficulty}
-              onChange={setDifficulty}
-              options={DIFFICULTY_OPTIONS}
-            />
+        <section className="card threatsim-panel">
+          <PanelHeader
+            title="Swarm Pressure"
+            description="Set the pressure profile and preview the visual attack lanes that will animate during the run."
+          />
 
-            <div className="attack-family-grid">
-              {ATTACK_FAMILIES.map((family) => (
-                <AttackFamilyCard
-                  key={family.label}
-                  label={family.label}
-                  detail={family.detail}
-                  strength={scaleAttackStrength(family.baseStrength, difficulty)}
-                  tone={family.tone}
-                />
-              ))}
-            </div>
+          <SelectField<Difficulty>
+            id="difficulty"
+            label="Difficulty"
+            value={difficulty}
+            onChange={setDifficulty}
+            options={DIFFICULTY_OPTIONS}
+          />
 
-            <div className="lobby-panel-note">
-              <span className="lobby-panel-note-label">Pressure</span>
-              <p className="lobby-panel-note-copy">{difficultyOption?.detail ?? 'Balanced pressure with deceptive UI variants.'}</p>
-            </div>
-          </section>
+          <div className="threatsim-lane-list">
+            {THREAT_LANES.map((lane) => (
+              <ThreatLaneCard
+                key={lane.label}
+                label={lane.label}
+                persona={lane.persona}
+                detail={lane.detail}
+                strength={lane.strength[difficulty]}
+                tone={lane.tone}
+              />
+            ))}
+          </div>
+
+          <div className="threatsim-note-card">
+            <span>Pressure profile</span>
+            <strong>{difficultyOption?.label ?? difficulty}</strong>
+            <p>{difficultyOption?.detail ?? 'Balanced pressure with deceptive UI variants and task-diversion attempts.'}</p>
+          </div>
+        </section>
+      </section>
+
+      <section className="card threatsim-launch-bar fade-in">
+        <div className="threatsim-launch-copy">
+          <p className="threatsim-kicker">Launch Summary</p>
+          <h2>Ready to simulate {formatTargetLabel(targetUrl)}</h2>
+          <p>
+            The run will start with {taskAgentOption?.label ?? taskAgentType}, apply {redTeamOption?.label ?? redTeamType},
+            and route you directly into the Swarm Defense Arena.
+          </p>
         </div>
 
-        <div className="lobby-launch-strip">
-          <div className="lobby-launch-action">
-            <p className="launch-kicker">Ready to draw</p>
-            <button
-              type="button"
-              disabled={starting}
-              onClick={startSimulation}
-              className="startbtn lobby-startbtn"
-              style={{ opacity: starting ? 0.72 : 1 }}
-            >
-              {starting ? '▶ Launching Simulation...' : '▶ Start Simulation'}
-            </button>
-            <p className="launch-copy">
-              Launches the live web duel for {formatTargetLabel(targetUrl)} with {taskAgentOption?.label ?? taskAgentType} versus{' '}
-              {redTeamOption?.label ?? redTeamType}.
-            </p>
-            {startError ? <p className="lobby-start-error">{startError}</p> : null}
-          </div>
+        <div className="threatsim-launch-actions">
+          <button
+            type="button"
+            disabled={starting}
+            onClick={startSimulation}
+            className="threatsim-launch-button"
+            style={{ opacity: starting ? 0.74 : 1 }}
+          >
+            {starting ? 'Launching Run...' : 'Launch Swarm Run'}
+          </button>
+          {startError ? <p className="threatsim-launch-error">{startError}</p> : null}
         </div>
       </section>
     </main>
   );
 }
 
-function PanelHeader({ title, description }: { title: string; description: string }) {
+function HeroStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="lobby-panel-header">
-      <h3 className="lobby-panel-title">{title}</h3>
-      <p className="lobby-panel-copy">{description}</p>
+    <div className="threatsim-hero-stat">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
 
-function AttackFamilyCard({
+function PanelHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="threatsim-panel-header">
+      <p className="threatsim-panel-kicker">Run Config</p>
+      <h3>{title}</h3>
+      <p>{description}</p>
+    </div>
+  );
+}
+
+function Field({
   label,
+  htmlFor,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="threatsim-field">
+      <label className="threatsim-field-label" htmlFor={htmlFor}>
+        {label}
+      </label>
+      {children}
+      <p className="threatsim-field-hint">{hint}</p>
+    </div>
+  );
+}
+
+function ThreatLaneCard({
+  label,
+  persona,
   detail,
   strength,
   tone,
 }: {
   label: string;
+  persona: string;
   detail: string;
   strength: number;
-  tone: 'gold' | 'red';
+  tone: 'magenta' | 'cyan' | 'orange' | 'red';
 }) {
   return (
-    <article className={`attack-family-card ${tone === 'red' ? 'is-red' : 'is-gold'}`}>
-      <div className="attack-family-head">
-        <p className="attack-family-title">{label}</p>
-        <span className="attack-family-strength">{strength}%</span>
+    <article className={`threatsim-lane-card is-${tone}`}>
+      <div className="threatsim-lane-head">
+        <div>
+          <h4>{label}</h4>
+          <span>{persona}</span>
+        </div>
+        <strong>{strength}%</strong>
       </div>
-      <p className="attack-family-copy">{detail}</p>
-      <div className="attack-family-bar">
-        <div className="attack-family-fill" style={{ width: `${strength}%` }} />
+      <p>{detail}</p>
+      <div className="threatsim-lane-bar">
+        <div className="threatsim-lane-fill" style={{ width: `${strength}%` }} />
       </div>
     </article>
   );
@@ -346,19 +377,15 @@ function SelectField<T extends string>({
   const active = options.find((option) => option.value === value);
 
   return (
-    <div className="lobby-field">
-      <label className="lobby-field-label" htmlFor={id}>
-        {label}
-      </label>
-      <select id={id} value={value} onChange={(event) => onChange(event.target.value as T)} className="lobby-field-control">
+    <Field label={label} htmlFor={id} hint={active?.detail ?? ''}>
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value as T)} className="threatsim-field-control">
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
-      <p className="lobby-field-copy">{active?.detail}</p>
-    </div>
+    </Field>
   );
 }
 
@@ -369,9 +396,4 @@ function formatTargetLabel(targetUrl: string) {
   } catch {
     return targetUrl.trim() || 'Custom URL';
   }
-}
-
-function scaleAttackStrength(baseStrength: number, difficulty: Difficulty) {
-  const multiplier = difficulty === 'easy' ? 0.82 : difficulty === 'hard' ? 1.18 : 1;
-  return Math.max(18, Math.min(96, Math.round(baseStrength * multiplier)));
 }

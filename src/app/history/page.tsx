@@ -96,8 +96,8 @@ export default function HistoryPage() {
       <SentinelHeader />
 
       <section className="card mb-4 p-4 md:p-5 fade-in">
-        <h2 className="mb-2 text-2xl font-semibold">Session History</h2>
-        <p className="text-sm text-[var(--text-muted)]">Filter and replay previous Agent Gauntlet sessions.</p>
+        <h2 className="mb-2 text-2xl font-semibold">Run Archive</h2>
+        <p className="text-sm text-[var(--text-muted)]">Filter, compare, and replay previous ThreatSim swarm runs.</p>
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
           <select
@@ -184,7 +184,7 @@ export default function HistoryPage() {
       </section>
 
       <section className="card p-4 fade-in">
-        <h3 className="mb-3 text-lg font-semibold">Episodes ({filtered.length})</h3>
+        <h3 className="mb-3 text-lg font-semibold">Recorded Runs ({filtered.length})</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="text-xs uppercase tracking-widest text-[var(--text-muted)]">

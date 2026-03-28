@@ -5,8 +5,8 @@ import { DEFAULT_THEME, THEME_STORAGE_KEY } from '@/lib/theme';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Agent Gauntlet',
-  description: 'Adversarial evaluation harness for browser agents',
+  title: 'KRIO ThreatSim',
+  description: 'Swarm Defense Arena for adversarial browser-agent simulation',
 };
 
 const themeInitScript = `
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <Script id="ag-theme-init" strategy="beforeInteractive">
+        <Script id="threatsim-theme-init" strategy="beforeInteractive">
           {themeInitScript}
         </Script>
         <div id="showdown-overlay" aria-hidden="true">
