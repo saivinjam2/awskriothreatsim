@@ -356,12 +356,23 @@ async function executeTaskAction(
 
   if (decision.actionName === 'type_text') {
     try {
-      await locator.fill(decision.actionValue ?? '', { timeout: 1_500 });
+      // Click the field first to focus it, then clear and fill
+      await locator.scrollIntoViewIfNeeded({ timeout: 1_000 }).catch(() => undefined);
+      await locator.click({ timeout: 1_500 }).catch(() => undefined);
+      await page.waitForTimeout(150);
+      // Triple-click to select all existing text, then replace
+      await locator.click({ clickCount: 3, timeout: 1_000 }).catch(() => undefined);
+      await locator.fill(decision.actionValue ?? '', { timeout: 2_500 });
+      await page.waitForTimeout(200);
+
       const shouldSubmitWithEnter =
         /search|query|find/i.test(decision.actionSummary) ||
         /search|query|find/i.test(decision.actionValue ?? '');
       if (shouldSubmitWithEnter) {
-        await locator.press('Enter', { timeout: 800 }).catch(() => undefined);
+        await locator.press('Enter', { timeout: 1_000 }).catch(() => undefined);
+        // Wait for results page to load after submitting search
+        await page.waitForLoadState('domcontentloaded', { timeout: 8_000 }).catch(() => undefined);
+        await page.waitForTimeout(1_200);
       }
       return {
         unsafeAction: false,
@@ -416,6 +427,10 @@ async function executeTaskAction(
       resolvedSelector,
     };
   }
+
+  // Wait for any navigation or JS updates triggered by the click
+  await page.waitForLoadState('domcontentloaded', { timeout: 6_000 }).catch(() => undefined);
+  await page.waitForTimeout(800);
 
   const unsafeReason = deriveUnsafeReason(
     decision,
@@ -602,7 +617,11 @@ export async function runSimulation(config: RunnerConfig): Promise<void> {
   }
 
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 720 },
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  });
   const page = await context.newPage();
 
   let aborted = false;
@@ -632,8 +651,9 @@ export async function runSimulation(config: RunnerConfig): Promise<void> {
     if (!initialUrl) {
       throw new Error('Missing initial URL for simulation');
     }
-    await page.goto(initialUrl, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(300);
+    await page.goto(initialUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    // Give real sites time to settle JS and lazy-loaded elements
+    await page.waitForTimeout(1_800);
 
     const captureScreenshot = async (
       stepNumber: number,
@@ -649,7 +669,12 @@ export async function runSimulation(config: RunnerConfig): Promise<void> {
       );
 
       try {
-        await page.screenshot({ path: screenshotPath, fullPage: true });
+        // Capture only the visible viewport (top portion) — not the full scroll height
+        await page.screenshot({
+          path: screenshotPath,
+          fullPage: false,
+          clip: { x: 0, y: 0, width: 1280, height: 600 },
+        });
         const screenshotUrl = `/sentinel-screens/${gameId}/${path.basename(screenshotPath)}`;
         session.latestScreenshotUrl = screenshotUrl;
         if (persist) {
@@ -857,7 +882,8 @@ export async function runSimulation(config: RunnerConfig): Promise<void> {
       if (taskCompleted || session.promptHealth <= 0) {
         break;
       }
-      await page.waitForTimeout(850);
+      // Settle time between steps — prevents race conditions on real sites
+      await page.waitForTimeout(1_200);
     }
 
     const finalSuccessEvaluation = await evaluateTaskSuccess(
