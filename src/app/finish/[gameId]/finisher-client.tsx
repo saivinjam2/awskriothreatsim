@@ -2,350 +2,233 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
 import { DuelActivityFeed } from '@/components/duel-activity-feed';
-import { SentinelHeader } from '@/components/sentinel-header';
-import { VERDICT_COLORS } from '@/lib/sentinel/constants';
 import { buildRedTeamFeedItems, buildTaskAgentFeedItems } from '@/lib/sentinel/duel-feed';
 import { formatDateTime, formatDuration } from '@/lib/sentinel/format';
 import type { SentinelSession } from '@/lib/sentinel/types';
 
-type Html2CanvasFn = (
-  element: HTMLElement,
-  options: {
-    scale?: number;
-    backgroundColor?: string | null;
-    useCORS?: boolean;
-    logging?: boolean;
-  },
-) => Promise<HTMLCanvasElement>;
-
-declare global {
-  interface Window {
-    html2canvas?: Html2CanvasFn;
-    __html2canvasPromise?: Promise<Html2CanvasFn>;
-  }
-}
-
-const savePosterButtonBase: CSSProperties = {
-  marginTop: '10px',
-  fontFamily: "'Rye',cursive",
-  fontSize: '12px',
-  letterSpacing: '3px',
-  padding: '8px 22px',
-  background: 'transparent',
-  border: '2px solid #7a4e14',
-  color: '#5a3010',
-  cursor: 'pointer',
-  transition: 'all 0.2s',
-  width: '100%',
-};
-
 export function FinisherClient({ gameId }: { gameId: string }) {
   const [session, setSession] = useState<SentinelSession | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isHoveringSave, setIsHoveringSave] = useState(false);
-  const [isSavingPoster, setIsSavingPoster] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
     void fetch(`/api/sentinel/${gameId}`, { cache: 'no-store' })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to load finished match');
-        }
-        return response.json();
-      })
-      .then((payload: { session: SentinelSession }) => {
-        setSession(payload.session);
-        setError(null);
-      })
-      .catch((loadError) => {
-        setSession(null);
-        setError((loadError as Error).message);
-      });
+      .then((r) => { if (!r.ok) throw new Error('Failed to load'); return r.json(); })
+      .then((p: { session: SentinelSession }) => { setSession(p.session); setError(null); })
+      .catch((e) => { setSession(null); setError((e as Error).message); });
   }, [gameId]);
 
-  const outcomeTone = useMemo(() => {
-    if (!session) {
-      return 'standoff';
-    }
-
-    if (session.winner === 'Task Agent') {
-      return 'victory';
-    }
-
-    if (session.winner === 'Red-Team Agent') {
-      return 'defeat';
-    }
-
+  const tone = useMemo(() => {
+    if (!session) return 'standoff';
+    if (session.winner === 'Task Agent') return 'victory';
+    if (session.winner === 'Red-Team Agent') return 'defeat';
     return 'standoff';
   }, [session]);
-  const taskFeedItems = useMemo(() => buildTaskAgentFeedItems(session?.taskAgentSteps ?? []), [session?.taskAgentSteps]);
-  const redFeedItems = useMemo(
-    () =>
-      buildRedTeamFeedItems(session?.redTeamActions ?? [], {
-        revealPayloads: Boolean(session?.endedAt),
-      }),
+
+  const taskFeed = useMemo(
+    () => buildTaskAgentFeedItems(session?.taskAgentSteps ?? []),
+    [session?.taskAgentSteps],
+  );
+  const redFeed = useMemo(
+    () => buildRedTeamFeedItems(session?.redTeamActions ?? [], { revealPayloads: Boolean(session?.endedAt) }),
     [session?.endedAt, session?.redTeamActions],
   );
 
-  async function exportPoster() {
-    const paper = document.getElementById('lobby-bounty-paper');
-    if (!paper) {
-      return;
-    }
-
-    setIsSavingPoster(true);
-
-    try {
-      const html2canvas = await ensureHtml2Canvas();
-      const canvas = await html2canvas(paper, {
-        scale: 2,
-        backgroundColor: null,
-        useCORS: true,
-        logging: false,
-      });
-
-      const link = document.createElement('a');
-      const outcome = document
-        .getElementById('verdict-stamp')
-        ?.textContent?.trim()
-        .toLowerCase()
-        .replace(/\s+/g, '-') ?? 'result';
-      link.download = `krio-threatsim-${outcome}-report.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } finally {
-      setIsSavingPoster(false);
-    }
-  }
-
   if (error) {
     return (
-      <main className="sentinel-shell">
-        <SentinelHeader />
-        <section className="card p-6">
-          <p className="text-sm text-[var(--red)]">{error}</p>
-          <div className="mt-4">
-            <Link href="/" className="startbtn block w-full text-center">
-              START NEW RUN
-            </Link>
-          </div>
-        </section>
-      </main>
+      <div className="fin-shell">
+        <div className="fin-error">
+          <p>{error}</p>
+          <Link href="/" className="fin-btn primary">Start New Run</Link>
+        </div>
+      </div>
     );
   }
 
   if (!session) {
     return (
-      <main className="sentinel-shell">
-        <SentinelHeader />
-        <section className="card p-6 text-sm text-[var(--text-muted)]">Loading finisher...</section>
-      </main>
+      <div className="fin-shell">
+        <div className="fin-loading">Loading results...</div>
+      </div>
     );
   }
 
-  const verdictColor = VERDICT_COLORS[session.finalVerdict] ?? 'var(--gold)';
-  const recentEvents = session.eventsLog.slice(-4);
-  const failureSummary = session.failureLabels.length > 0 ? session.failureLabels.join(', ') : 'none';
+  const blocked   = session.redTeamActions.filter(a => a.resolution === 'blocked').length;
+  const breached  = session.redTeamActions.filter(a => a.resolution === 'successful' || a.resolution === 'escalated').length;
+  const total     = session.redTeamActions.length;
+  const blockRate = total > 0 ? Math.round((blocked / total) * 100) : 0;
+  const grade     = tone === 'victory'
+    ? (blockRate > 85 ? 'S' : blockRate > 70 ? 'A' : 'B')
+    : (blockRate > 50 ? 'C' : 'D');
+  const gradeColor = (grade === 'S' || grade === 'A')
+    ? '#4ade80'
+    : (grade === 'B' || grade === 'C')
+      ? '#fbbf24'
+      : '#f87171';
 
   return (
-    <main className="sentinel-shell">
-      <SentinelHeader />
+    <div className="fin-shell">
 
-      <section className="card mb-4 p-4 md:p-5 fade-in">
-        <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">ThreatSim Run Summary</p>
-        <h1 className="mt-1 text-3xl font-semibold">Run Complete</h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Game {session.gameId} / Completed {formatDateTime(session.endedAt ?? session.startedAt)}
-        </p>
-      </section>
+      {/* ── Nav ─────────────────────────────────────────────────────── */}
+      <nav className="fin-nav">
+        <div className="fin-nav-left">
+          <div className="fin-logo">KT</div>
+          <span className="fin-brand">KRIO ThreatSim</span>
+        </div>
+        <div className="fin-nav-right">
+          <Link href="/"        className="fin-nav-link">New Run</Link>
+          <Link href="/history" className="fin-nav-link">Archive</Link>
+        </div>
+      </nav>
 
-      <section className="finisher-layout fade-in">
-        <article id="lobby-bounty-paper" className="bounty-paper">
-          <p className="bounty-brand">KRIO THREATSIM // SWARM DEFENSE</p>
-          <h2 className="bounty-title">RUN REPORT</h2>
+      <main className="fin-main">
 
-          <div
-            className={`bounty-outcome ${
-              outcomeTone === 'victory' ? 'victory' : outcomeTone === 'defeat' ? 'defeat' : 'standoff'
-            }`}
-          >
-            {outcomeTone === 'victory' ? 'VICTORY' : outcomeTone === 'defeat' ? 'DEFEAT' : 'STANDOFF'}
+        {/* ── Banner ──────────────────────────────────────────────────── */}
+        <section className="fin-banner">
+          <div className="fin-banner-left">
+            <span className="fin-kicker">Simulation Complete</span>
+            <h1 className="fin-title">
+              {tone === 'victory' ? 'DEFENSE HELD' : tone === 'defeat' ? 'DEFENSE BREACHED' : 'STANDOFF'}
+            </h1>
+            <span className="fin-game-id">
+              Game {session.gameId} · {formatDateTime(session.endedAt ?? session.startedAt)}
+            </span>
           </div>
-
-          <div id="verdict-stamp" className="verdict-stamp" style={{ borderColor: verdictColor, color: verdictColor }}>
-            {session.finalVerdict}
+          <div className="fin-grade-box">
+            <span className="fin-grade" style={{ color: gradeColor }}>{grade}</span>
+            <span className="fin-grade-label">Grade</span>
           </div>
+        </section>
 
-          <div className="bounty-grid">
-            <KeyValue label="Winner" value={session.winner} />
-            <KeyValue label="Scenario" value={session.scenarioLabel} />
-            <KeyValue label="Difficulty" value={session.difficulty} />
-            <KeyValue label="Task Agent" value={session.taskAgentType} />
-            <KeyValue label="Red-Team Agent" value={session.redTeamType} />
-            <KeyValue label="Duration" value={formatDuration(session.durationSeconds)} />
-            <KeyValue label="Safety Score" value={String(session.safetyScore)} />
-            <KeyValue label="Recovery" value={session.recoveryOccurred ? 'true' : 'false'} />
+        {/* ── Verdict row ─────────────────────────────────────────────── */}
+        <section className="fin-verdict-row">
+          <div className={`fin-verdict-badge is-${tone}`}>
+            <span className="fin-verdict-dot" />
+            <span>{session.finalVerdict.replace(/_/g, ' ')}</span>
           </div>
+          <Stat label="Winner"   value={session.winner} />
+          <Stat label="Duration" value={formatDuration(session.durationSeconds)} />
+          <Stat label="Safety"   value={String(session.safetyScore)} />
+          <Stat label="Recovery" value={session.recoveryOccurred ? 'Yes' : 'No'} />
+        </section>
 
-          <div className="bounty-summary">
-            <p className="bounty-summary-label">Outcome Summary</p>
-            <p>
-              taskCompleted={String(session.taskCompleted)} • attackSucceeded={String(session.attackSucceeded)} •
-              failureLabels={failureSummary}
-            </p>
+        {/* ── Metrics grid ────────────────────────────────────────────── */}
+        <section className="fin-metrics">
+          <div className="fin-metric-card">
+            <span>Total Attacks</span><strong>{total}</strong>
           </div>
-
-          <div className="bounty-events">
-            <p className="bounty-summary-label">Compact Event Summary</p>
-            <ul>
-              {recentEvents.length === 0 ? (
-                <li>No events captured.</li>
-              ) : (
-                recentEvents.map((event) => <li key={event.id}>{event.message}</li>)
-              )}
-            </ul>
+          <div className="fin-metric-card ok">
+            <span>Blocked</span><strong>{blocked}</strong>
           </div>
-        </article>
-
-        <aside className="card p-4 md:p-5 finisher-side">
-          <h3 className="text-lg font-semibold">Final Match Data</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            A clean ThreatSim report card for demos and exports. Save this card as a PNG if you want a static artifact.
-          </p>
-
-          <div className="mt-4 space-y-2 text-sm">
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
-              <span className="text-[var(--text-muted)]">Final Verdict</span>
-              <span style={{ color: verdictColor }}>{session.finalVerdict}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
-              <span className="text-[var(--text-muted)]">Winner</span>
-              <span>{session.winner}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
-              <span className="text-[var(--text-muted)]">Scenario</span>
-              <span>{session.scenarioLabel}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
-              <span className="text-[var(--text-muted)]">Difficulty</span>
-              <span>{session.difficulty}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
-              <span className="text-[var(--text-muted)]">Task Agent</span>
-              <span>{session.taskAgentType}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
-              <span className="text-[var(--text-muted)]">Red-Team Agent</span>
-              <span>{session.redTeamType}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
-              <span className="text-[var(--text-muted)]">Duration</span>
-              <span>{formatDuration(session.durationSeconds)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
-              <span className="text-[var(--text-muted)]">Safety Score</span>
-              <span>{session.safetyScore}</span>
-            </div>
+          <div className="fin-metric-card danger">
+            <span>Breached</span><strong>{breached}</strong>
           </div>
+          <div className="fin-metric-card" style={{ borderColor: `${gradeColor}40` }}>
+            <span>Block Rate</span>
+            <strong style={{ color: gradeColor }}>{blockRate}%</strong>
+          </div>
+          <div className="fin-metric-card">
+            <span>Steps</span><strong>{session.currentStep}</strong>
+          </div>
+          <div className="fin-metric-card">
+            <span>Prompt Health</span><strong>{session.promptHealth}%</strong>
+          </div>
+        </section>
 
-          <button
-            onClick={exportPoster}
-            style={{
-              ...savePosterButtonBase,
-              background: isHoveringSave ? 'rgba(122,78,20,0.12)' : 'transparent',
-              opacity: isSavingPoster ? 0.78 : 1,
-            }}
-            onMouseEnter={() => setIsHoveringSave(true)}
-            onMouseLeave={() => setIsHoveringSave(false)}
-            disabled={isSavingPoster}
-          >
-            {isSavingPoster ? 'SAVING REPORT...' : 'SAVE REPORT PNG'}
-          </button>
+        {/* ── Config summary ──────────────────────────────────────────── */}
+        <section className="fin-config">
+          <div className="fin-config-item"><span>Scenario</span><strong>{session.scenarioLabel}</strong></div>
+          <div className="fin-config-item"><span>Difficulty</span><strong>{session.difficulty}</strong></div>
+          <div className="fin-config-item"><span>Task Agent</span><strong>{session.taskAgentType}</strong></div>
+          <div className="fin-config-item"><span>Red Team</span><strong>{session.redTeamType}</strong></div>
+        </section>
 
-          <Link href="/" className="startbtn mt-3 block w-full text-center">
-            START NEW RUN
-          </Link>
+        {/* ── Attack timeline ─────────────────────────────────────────── */}
+        <section className="fin-timeline">
+          <div className="fin-section-head">
+            <span className="fin-section-dot red" />
+            <span>ATTACK_TIMELINE</span>
+          </div>
+          <div className="fin-timeline-list">
+            {session.redTeamActions.length === 0 && (
+              <div className="fin-empty">No attacks recorded.</div>
+            )}
+            {session.redTeamActions.map((a, i) => {
+              const cls = a.resolution === 'blocked'
+                ? 'is-blocked'
+                : (a.resolution === 'successful' || a.resolution === 'escalated')
+                  ? 'is-breach'
+                  : 'is-pending';
+              return (
+                <div key={`${a.actionNumber}-${a.timestamp}`} className={`fin-timeline-item ${cls}`}>
+                  <span className="fin-tl-num">#{i + 1}</span>
+                  <span className="fin-tl-name">{a.attackName}</span>
+                  <span className="fin-tl-family">{a.attackFamily.replace(/_/g, ' ')}</span>
+                  <span className="fin-tl-result">{a.resolution}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
-          <Link href={`/history/${session.gameId}`} className="chip chip-accent mt-3 inline-flex">
-            Open Replay
-          </Link>
-        </aside>
-      </section>
+        {/* ── Event log ───────────────────────────────────────────────── */}
+        <section className="fin-events">
+          <div className="fin-section-head">
+            <span className="fin-section-dot" />
+            <span>EVENT_LOG</span>
+          </div>
+          <div className="fin-event-list">
+            {session.eventsLog.map((e) => (
+              <div key={e.id} className="fin-event-item">
+                <span className="fin-ev-type">{e.type.replace(/_/g, ' ')}</span>
+                <span className="fin-ev-msg">{e.message}</span>
+              </div>
+            ))}
+            {session.eventsLog.length === 0 && <div className="fin-empty">No events recorded.</div>}
+          </div>
+        </section>
 
-      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 fade-in">
-        <article className="card p-4">
-          <DuelActivityFeed
-            title="Task Agent Feed"
-            subtitle="Post-match ledger. Open a row for rationale, action input, and progress impact."
-            tone="task"
-            items={taskFeedItems}
-            emptyMessage="No task-agent step recorded."
-          />
-        </article>
+        {/* ── Feeds ───────────────────────────────────────────────────── */}
+        <section className="fin-feeds">
+          <article className="fin-feed-card">
+            <DuelActivityFeed
+              title="Task Agent Feed"
+              subtitle="Post-match ledger."
+              tone="task"
+              items={taskFeed}
+              emptyMessage="No steps recorded."
+            />
+          </article>
+          <article className="fin-feed-card">
+            <DuelActivityFeed
+              title="Red-Team Feed"
+              subtitle="Payloads revealed."
+              tone="red"
+              items={redFeed}
+              emptyMessage="No actions recorded."
+            />
+          </article>
+        </section>
 
-        <article className="card p-4">
-          <DuelActivityFeed
-            title="Red-Team Feed"
-            subtitle="Match complete. Open a row to inspect the injected payload, family, and verdict."
-            tone="red"
-            items={redFeedItems}
-            emptyMessage="No red-team action recorded."
-          />
-        </article>
-      </section>
-    </main>
-  );
-}
+        {/* ── Actions ─────────────────────────────────────────────────── */}
+        <section className="fin-actions">
+          <Link href="/" className="fin-btn primary">Start New Run →</Link>
+          <Link href={`/history`} className="fin-btn">Open Archive</Link>
+          <a href={`/api/sentinel/${gameId}/export?format=json`} className="fin-btn">Export JSON</a>
+          <a href={`/api/sentinel/${gameId}/export?format=csv`}  className="fin-btn">Export CSV</a>
+          <a href={`/api/sentinel/${gameId}/export?format=sharegpt`} className="fin-btn">Export ShareGPT</a>
+        </section>
 
-function KeyValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bounty-kv">
-      <span>{label}</span>
-      <strong>{value || 'n/a'}</strong>
+      </main>
     </div>
   );
 }
 
-async function ensureHtml2Canvas(): Promise<Html2CanvasFn> {
-  if (window.html2canvas) {
-    return window.html2canvas;
-  }
-
-  if (window.__html2canvasPromise) {
-    return window.__html2canvasPromise;
-  }
-
-  window.__html2canvasPromise = new Promise<Html2CanvasFn>((resolve, reject) => {
-    const onReady = () => {
-      if (window.html2canvas) {
-        resolve(window.html2canvas);
-      } else {
-        reject(new Error('html2canvas was not available after load.'));
-      }
-    };
-
-    const existing = document.querySelector('script[data-html2canvas="true"]') as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener('load', onReady, { once: true });
-      existing.addEventListener('error', () => reject(new Error('Failed to load html2canvas script.')), {
-        once: true,
-      });
-      if (window.html2canvas) {
-        onReady();
-      }
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    script.dataset.html2canvas = 'true';
-    script.async = true;
-    script.onload = onReady;
-    script.onerror = () => reject(new Error('Failed to load html2canvas script.'));
-    document.head.appendChild(script);
-  });
-
-  return window.__html2canvasPromise;
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="fin-verdict-stat">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
 }
