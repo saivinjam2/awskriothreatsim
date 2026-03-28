@@ -217,28 +217,29 @@ export function SwarmCanvas({
 
   function drawRadar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, healthFrac: number) {
     const a     = radarAngle.current;
-    const color = healthFrac > 0.5 ? '0,230,255' : healthFrac > 0.25 ? '255,165,0' : '255,50,50';
+    const outerR = r * 2.6;
+    const color  = healthFrac > 0.5 ? '0,230,255' : healthFrac > 0.25 ? '255,165,0' : '255,50,50';
 
-    [[r * 2.8, 0.06], [r * 1.9, 0.09]].forEach(([rad, alpha]) => {
-      ctx.beginPath();
-      ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(${color},${alpha})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    });
+    // Single outer ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${color},0.08)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
+    // Single rotating spoke line
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(a);
-    const sweep = ctx.createLinearGradient(0, 0, r * 2.8, 0);
-    sweep.addColorStop(0, `rgba(${color},0.3)`);
-    sweep.addColorStop(1, `rgba(${color},0)`);
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.arc(0, 0, r * 2.8, -0.35, 0.35);
-    ctx.closePath();
-    ctx.fillStyle = sweep;
-    ctx.fill();
+    ctx.lineTo(outerR, 0);
+    ctx.strokeStyle = `rgba(${color},0.35)`;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = `rgba(${color},0.5)`;
+    ctx.shadowBlur  = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
     ctx.restore();
   }
 
