@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Rye&family=Special+Elite&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Cinzel+Decorative:wght@400;700;900&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
 @import 'tailwindcss';
 
 :root {
@@ -19,8 +18,8 @@
   --tx: #e8d4a0;
   --txd: #b89252;
   --txm: #9f7a42;
-  --fn: 'Special Elite', monospace;
-  --fd: 'Rye', cursive;
+  --fn: 'Cinzel', serif;
+  --fd: 'Cinzel Decorative', serif;
   --topbar-bg: rgba(14, 10, 4, 0.97);
   --plank1: rgba(0, 0, 0, 0.06);
   --plank2: rgba(232, 160, 32, 0.025);
